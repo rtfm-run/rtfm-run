@@ -3,9 +3,9 @@ import CopyButton from "./copy-button";
 import RunReplay from "./run-replay";
 import Wordmark from "./wordmark";
 
-const GITHUB = "https://github.com/vanguard-run";
+const GITHUB = "https://github.com/rtfm-run";
 const BADGE_MD =
-  "[![quickstart](https://vanguard.run/badge/your-org/your-repo.svg)](https://vanguard.run/r/your-org/your-repo)";
+  "[![quickstart](https://rtfm.run/badge/your-org/your-repo.svg)](https://rtfm.run/r/your-org/your-repo)";
 
 const LOOP = `   your docs
        |
@@ -23,7 +23,7 @@ function PageBreak({ page }: { page: number }) {
   return (
     <div className="pagebreak" aria-hidden="true">
       <div>
-        <span>vanguard.run</span>
+        <span>rtfm.run</span>
         <span className="mid">Standards Track</span>
         <span>[Page {page}]</span>
       </div>
@@ -59,7 +59,7 @@ export default function Home() {
 
       <h2>Abstract</h2>
       <p className="t">
-        This document specifies vanguard.run, an agent that follows a quickstart the way a new developer would:
+        This document specifies rtfm.run, an agent that follows a quickstart the way a new developer would:
         literally, on a blank machine, with no idea what the author meant. It finds every step that breaks,
         writes the fix, and proves the fix works before it opens the pull request.
       </p>
@@ -79,7 +79,7 @@ export default function Home() {
         <span className="hand note">every one of them was a signup</span>
       </p>
       <p className="t">
-        Drift tools read your diffs and report that the docs <i>might</i> be wrong. vanguard.run runs them.
+        Drift tools read your diffs and report that the docs <i>might</i> be wrong. rtfm.run runs them.
         Your quickstart MUST work (RFC 2119). The remainder of this document concerns what happens when it
         does not.
       </p>
@@ -179,12 +179,12 @@ export default function Home() {
 
       <h2 id="address">Authors’ Address</h2>
       <p className="t">
-        vanguard.run
+        rtfm.run
         <br />
         Built on Gemini and the Antigravity CLI
         <br />
         <a className="hl" href={GITHUB}>
-          github.com/vanguard-run
+          github.com/rtfm-run
         </a>
       </p>
 

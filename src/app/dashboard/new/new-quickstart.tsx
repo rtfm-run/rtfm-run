@@ -45,7 +45,7 @@ export default function NewQuickstart() {
 
       {app.repos.length === 0 ? (
         <div className="sheet">
-          <p>vanguard.run cannot see any of your repositories yet.</p>
+          <p>rtfm.run cannot see any of your repositories yet.</p>
           <p>
             <Link href="/dashboard/connections" className="btn">
               Connect GitHub

@@ -124,6 +124,14 @@ export type FixResult = {
   pr_url?: string;
 };
 
+export type ReportCredential = {
+  name: string;
+  description?: string;
+  url?: string;
+  status: "provided" | "unavailable" | "invalid";
+  source?: string;
+};
+
 export type Report = {
   id: string;
   target: string;
@@ -142,7 +150,7 @@ export type Report = {
   searches?: string[];
   urls_read?: string[];
   success_check?: ReportCommand;
-  credentials?: { name: string; description?: string; url?: string; status: string; source?: string }[];
+  credentials?: ReportCredential[];
   fix?: FixResult;
   error?: string;
 };

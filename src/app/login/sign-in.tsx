@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { ApiError, createApi, errorMessage } from "@/lib/api";
 import Wordmark from "../wordmark";
@@ -13,6 +13,8 @@ export default function SignIn({ apiUrl }: { apiUrl: string }) {
   const api = useMemo(() => createApi(apiUrl), [apiUrl]);
   const [phase, setPhase] = useState<Phase>("checking");
   const [error, setError] = useState<string>();
+  // The API sends failed sign-ins back here with a reason.
+  const signInError = useSearchParams().get("error");
 
   useEffect(() => {
     if (api.sample) return;
@@ -60,9 +62,10 @@ export default function SignIn({ apiUrl }: { apiUrl: string }) {
         </>
       ) : (
         <>
-          <h1>Sign in to vanguard.run</h1>
+          <h1>Sign in to rtfm.run</h1>
+          {signInError && <p className="err">{signInError}</p>}
           <p>
-            Sign in with GitHub, then choose which repositories vanguard.run may read. It needs them to follow your docs
+            Sign in with GitHub, then choose which repositories rtfm.run may read. It needs them to follow your docs
             and to open fix pull requests.
           </p>
           <a className="btn" href={api.loginUrl} aria-disabled={phase === "checking"}>

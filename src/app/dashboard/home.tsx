@@ -19,7 +19,7 @@ export default function Home() {
         <p className="lead">
           {app.repos.length
             ? "Pick a repository and a doc, and the agent will follow it like a new developer."
-            : "Start by letting vanguard.run see a repository."}
+            : "Start by letting rtfm.run see a repository."}
         </p>
       </header>
       <div className="sheet">

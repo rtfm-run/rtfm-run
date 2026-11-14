@@ -18,7 +18,7 @@ const hand = Caveat({
 export const metadata: Metadata = {
   title: "RFC 127 — Nobody Has Run Your Quickstart Since You Wrote It",
   description:
-    "vanguard.run: an agent that follows your quickstart the way a new developer would, finds every step that breaks, writes the fix, and proves the fix works.",
+    "rtfm.run: an agent that follows your quickstart the way a new developer would, finds every step that breaks, writes the fix, and proves the fix works.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

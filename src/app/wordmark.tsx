@@ -11,7 +11,7 @@ export default function Wordmark() {
           <rect x="47" y="12" width="15" height="40" />
         </g>
       </svg>
-      vanguard.run
+      rtfm.run
     </span>
   );
 }

@@ -6,13 +6,13 @@ import Shell from "./shell";
 import "./dashboard.css";
 
 export const metadata: Metadata = {
-  title: "Dashboard — vanguard.run",
-  description: "Every quickstart vanguard.run has walked, step by step.",
+  title: "Dashboard — rtfm.run",
+  description: "Every quickstart rtfm.run has walked, step by step.",
 };
 
 async function Configured({ children }: { children: React.ReactNode }) {
   await connection();
-  const apiUrl = process.env.VANGUARD_API_URL ?? "";
+  const apiUrl = process.env.RTFM_API_URL ?? "";
   return (
     <AppProvider apiUrl={apiUrl}>
       <Shell>{children}</Shell>

@@ -279,7 +279,7 @@ function notFound(): never {
 }
 
 function readOnly(): never {
-  throw new ApiError(0, "This is sample data. Set VANGUARD_API_URL to connect the real API.");
+  throw new ApiError(0, "This is sample data. Set RTFM_API_URL to connect the real API.");
 }
 
 export const sampleApi: Api = {

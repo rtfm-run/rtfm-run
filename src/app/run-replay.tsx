@@ -11,7 +11,7 @@ type Line = {
 };
 
 const LINES: Line[] = [
-  { text: "$ vanguard run acme/hello --doc README.md", wait: 900 },
+  { text: "$ rtfm run acme/hello --doc README.md", wait: 900 },
   { text: "  devbox  fresh container, ubuntu 24.04, no caches" },
   { text: "  agent   newhire, gemini-3.8-flash, knows nothing", wait: 800 },
 

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import type { RunEvent, RunStep } from "@/lib/api-types";
+import type { ReportCredential, RunEvent, RunStep } from "@/lib/api-types";
 import {
   clock,
   eventText,
@@ -108,6 +108,11 @@ export default function RunView({ id }: { id: number }) {
   const report = run.report ?? undefined;
   const fix = report?.fix;
   const prUrl = run.pr_url || fix?.pr_url;
+  // Credentials the agent asked for but could not get (in either pass).
+  const missing = new Map<string, ReportCredential>();
+  for (const c of [...(report?.credentials ?? []), ...(run.verify_report?.credentials ?? [])]) {
+    if (c.status !== "provided" && !missing.has(c.name)) missing.set(c.name, c);
+  }
 
   return (
     <>
@@ -148,6 +153,38 @@ export default function RunView({ id }: { id: number }) {
 
       <div className="report">
         <div>
+          {!active && missing.size > 0 && (
+            <section className="block">
+              <h2>Needs credentials</h2>
+              <p className="faint">
+                The agent asked for these and could not get them, so the steps that need them could not be checked.
+              </p>
+              {[...missing.values()].map((c) => (
+                <div key={c.name} className="card open">
+                  <p>
+                    <b>{c.name}</b>
+                    {c.status === "invalid" ? " was rejected as invalid." : " was not available."}
+                    {c.description ? ` ${c.description}` : ""}
+                  </p>
+                  {c.url && (
+                    <p className="faint">
+                      Get one at{" "}
+                      <a href={c.url} className="ul" rel="noreferrer noopener" target="_blank">
+                        {c.url}
+                      </a>
+                    </p>
+                  )}
+                </div>
+              ))}
+              <p>
+                <Link href={`/dashboard/quickstarts/${run.quickstart_id}#credentials`} className="ul">
+                  Add them to this quickstart
+                </Link>
+                , then run it again.
+              </p>
+            </section>
+          )}
+
           {(active || events.length > 0) && (
             <section className="block">
               <h2>Progress</h2>

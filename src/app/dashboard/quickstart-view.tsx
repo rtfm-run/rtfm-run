@@ -374,7 +374,7 @@ export default function QuickstartView({ id }: { id: number }) {
             <Settings key={quickstart.updated_at} quickstart={quickstart} onSaved={detail.reload} />
           </section>
 
-          <section className="block">
+          <section className="block" id="credentials">
             <h2>Credentials</h2>
             <Credentials quickstartId={id} />
           </section>

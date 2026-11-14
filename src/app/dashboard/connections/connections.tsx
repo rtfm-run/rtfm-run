@@ -28,7 +28,7 @@ export default function Connections() {
       </Link>
       <header className="report-head">
         <h1>Connections</h1>
-        <p className="lead">Where vanguard.run reads your docs from and opens its pull requests.</p>
+        <p className="lead">Where rtfm.run reads your docs from and opens its pull requests.</p>
       </header>
 
       <div className="sheet">

@@ -5,14 +5,14 @@ import SignIn from "./sign-in";
 import "../dashboard/dashboard.css";
 
 export const metadata: Metadata = {
-  title: "Sign in — vanguard.run",
+  title: "Sign in — rtfm.run",
 };
 
 export const instant = false;
 
 async function Configured() {
   await connection();
-  return <SignIn apiUrl={process.env.VANGUARD_API_URL ?? ""} />;
+  return <SignIn apiUrl={process.env.RTFM_API_URL ?? ""} />;
 }
 
 export default function LoginPage() {

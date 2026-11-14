@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"vanguard.run/internal/creds"
-	"vanguard.run/internal/devbox"
+	"rtfm.run/internal/creds"
+	"rtfm.run/internal/devbox"
 )
 
 // fakeBox is an in-memory box.

@@ -1,4 +1,4 @@
-// Package ghapp is vanguard's GitHub App: app JWTs, cached installation
+// Package ghapp is rtfm's GitHub App: app JWTs, cached installation
 // tokens, the user sign-in (user-to-server OAuth) flow, and webhook
 // verification.
 package ghapp
@@ -24,7 +24,7 @@ import (
 	"sync"
 	"time"
 
-	"vanguard.run/internal/github"
+	"rtfm.run/internal/github"
 )
 
 // App holds the GitHub App's credentials.

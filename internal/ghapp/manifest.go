@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"strings"
 
-	"vanguard.run/internal/github"
+	"rtfm.run/internal/github"
 )
 
 // Manifest is a GitHub App manifest: everything GitHub needs to register the
@@ -33,7 +33,7 @@ type HookAttributes struct {
 	Active bool   `json:"active"`
 }
 
-// Permissions vanguard needs on installed repos: read the docs at a commit
+// Permissions rtfm needs on installed repos: read the docs at a commit
 // (contents), push fix branches and open PRs (contents, pull_requests).
 // installation and installation_repositories events are always delivered.
 var (
@@ -41,7 +41,7 @@ var (
 	DefaultEvents      = []string{"push"}
 )
 
-// NewManifest describes vanguard's App for a service at baseURL (sign-in
+// NewManifest describes rtfm's App for a service at baseURL (sign-in
 // callbacks; may be localhost in development, since they're browser
 // redirects). webhookURL must be reachable from GitHub; "" means
 // baseURL/webhooks/github. redirectURL receives the one-time conversion code

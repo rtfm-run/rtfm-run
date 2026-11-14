@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"vanguard.run/internal/report"
+	"rtfm.run/internal/report"
 )
 
 func run(target string, d time.Duration, succeeded bool, errMsg string, steps ...report.Step) *report.Run {

@@ -18,7 +18,7 @@ func TestInstallMCPRefusesTestBinaries(t *testing.T) {
 			t.Errorf("SelfBin %s: err = %v", bin, err)
 		}
 	}
-	if err := (Agy{SelfBin: "/usr/local/bin/vanguard"}).installMCP(req); err != nil {
+	if err := (Agy{SelfBin: "/usr/local/bin/rtfm"}).installMCP(req); err != nil {
 		t.Fatal(err)
 	}
 	b, _ := os.ReadFile(filepath.Join(dir, ".agents", "mcp_config.json"))

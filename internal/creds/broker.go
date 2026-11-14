@@ -179,7 +179,7 @@ func (s *Session) Records() []Record {
 }
 
 // Values returns the credentials handed out in this session, for redaction
-// and for commands vanguard itself runs in the devbox (the success check).
+// and for commands rtfm itself runs in the devbox (the success check).
 func (s *Session) Values() map[string]string {
 	s.mu.Lock()
 	defer s.mu.Unlock()

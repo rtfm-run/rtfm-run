@@ -4,11 +4,12 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
-	"vanguard.run/internal/db"
-	"vanguard.run/internal/ghapp"
+	"rtfm.run/internal/db"
+	"rtfm.run/internal/ghapp"
 )
 
 func (s *Server) callbackURL() string {
@@ -16,6 +17,26 @@ func (s *Server) callbackURL() string {
 }
 
 func (s *Server) secureCookies() bool { return strings.HasPrefix(s.BaseURL, "https://") }
+
+// dashboardPage resolves a path on the dashboard's site (e.g. "/login"), or
+// "" when no dashboard is configured.
+func (s *Server) dashboardPage(path string) string {
+	u, err := url.Parse(s.DashboardURL)
+	if err != nil || u.Scheme == "" || u.Host == "" {
+		return ""
+	}
+	return u.Scheme + "://" + u.Host + path
+}
+
+// signInFailed sends the browser back to the dashboard's sign-in page with
+// a readable reason, instead of showing raw JSON from the API.
+func (s *Server) signInFailed(w http.ResponseWriter, r *http.Request, status int, msg string) {
+	if dest := s.dashboardPage("/login"); dest != "" {
+		http.Redirect(w, r, dest+"?error="+url.QueryEscape(msg), http.StatusFound)
+		return
+	}
+	writeError(w, status, msg)
+}
 
 // login starts "Sign in with GitHub".
 func (s *Server) login(w http.ResponseWriter, r *http.Request) {
@@ -32,24 +53,28 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 func (s *Server) callback(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	if ok, err := s.DB.ConsumeOAuthState(ctx, r.URL.Query().Get("state")); err != nil || !ok {
-		writeError(w, http.StatusBadRequest, "sign-in link expired; try again")
+		s.signInFailed(w, r, http.StatusBadRequest, "The sign-in link expired. Try again.")
 		return
 	}
 	code := r.URL.Query().Get("code")
 	if code == "" {
-		writeError(w, http.StatusBadRequest, "missing code")
+		msg := "GitHub did not complete sign-in."
+		if r.URL.Query().Get("error") == "access_denied" {
+			msg = "Sign-in was canceled on GitHub."
+		}
+		s.signInFailed(w, r, http.StatusBadRequest, msg)
 		return
 	}
 	tok, err := s.App.ExchangeCode(ctx, code, s.callbackURL())
 	if err != nil {
 		s.Log.Warn("sign-in failed", "err", err)
-		writeError(w, http.StatusBadGateway, "GitHub sign-in failed")
+		s.signInFailed(w, r, http.StatusBadGateway, "GitHub sign-in failed. Try again.")
 		return
 	}
 	prof, err := s.App.UserProfile(ctx, tok.AccessToken)
 	if err != nil {
 		s.Log.Warn("profile fetch failed", "err", err)
-		writeError(w, http.StatusBadGateway, "could not read your GitHub profile")
+		s.signInFailed(w, r, http.StatusBadGateway, "Could not read your GitHub profile. Try again.")
 		return
 	}
 	enc, err := s.sealTokens(tok)

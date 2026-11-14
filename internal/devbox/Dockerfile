@@ -1,4 +1,4 @@
-# vanguard devbox: a blank-slate developer machine.
+# rtfm devbox: a blank-slate developer machine.
 #
 # A typical dev toolchain (git, build tools, Python, Node, Go) and nothing
 # project-specific. Deliberately NOT preinstalled: any AI CLIs (agy, gemini…),

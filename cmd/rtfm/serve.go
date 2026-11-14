@@ -13,13 +13,13 @@ import (
 	"strings"
 	"time"
 
-	"vanguard.run/internal/db"
-	"vanguard.run/internal/devbox"
-	"vanguard.run/internal/ghapp"
-	"vanguard.run/internal/runner"
-	"vanguard.run/internal/secretbox"
-	"vanguard.run/internal/server"
-	"vanguard.run/internal/worker"
+	"rtfm.run/internal/db"
+	"rtfm.run/internal/devbox"
+	"rtfm.run/internal/ghapp"
+	"rtfm.run/internal/runner"
+	"rtfm.run/internal/secretbox"
+	"rtfm.run/internal/server"
+	"rtfm.run/internal/worker"
 )
 
 // serviceEnv is the service configuration, from the environment.
@@ -37,10 +37,10 @@ func env(k string) string { return strings.TrimSpace(os.Getenv(k)) }
 // database, the secret key and the App's id and private key.
 func loadServiceEnv(full bool) (*serviceEnv, error) {
 	e := &serviceEnv{
-		DatabaseURL:  env("VANGUARD_DATABASE_URL"),
-		SecretKey:    env("VANGUARD_SECRET_KEY"),
-		BaseURL:      strings.TrimRight(env("VANGUARD_BASE_URL"), "/"),
-		DashboardURL: env("VANGUARD_DASHBOARD_URL"),
+		DatabaseURL:  env("RTFM_DATABASE_URL"),
+		SecretKey:    env("RTFM_SECRET_KEY"),
+		BaseURL:      strings.TrimRight(env("RTFM_BASE_URL"), "/"),
+		DashboardURL: env("RTFM_DASHBOARD_URL"),
 	}
 	var missing []string
 	need := func(name, v string) {
@@ -48,8 +48,8 @@ func loadServiceEnv(full bool) (*serviceEnv, error) {
 			missing = append(missing, name)
 		}
 	}
-	need("VANGUARD_DATABASE_URL", e.DatabaseURL)
-	need("VANGUARD_SECRET_KEY", e.SecretKey)
+	need("RTFM_DATABASE_URL", e.DatabaseURL)
+	need("RTFM_SECRET_KEY", e.SecretKey)
 	app := &ghapp.App{
 		Slug:          env("GITHUB_APP_SLUG"),
 		ClientID:      env("GITHUB_APP_CLIENT_ID"),
@@ -83,7 +83,7 @@ func loadServiceEnv(full bool) (*serviceEnv, error) {
 		app.Key = k
 	}
 	if full {
-		need("VANGUARD_BASE_URL", e.BaseURL)
+		need("RTFM_BASE_URL", e.BaseURL)
 		need("GITHUB_APP_SLUG", app.Slug)
 		need("GITHUB_APP_CLIENT_ID", app.ClientID)
 		need("GITHUB_APP_CLIENT_SECRET", app.ClientSecret)
@@ -108,7 +108,7 @@ type workerFlags struct {
 
 func (wf *workerFlags) register(fs *flag.FlagSet, defaultWorkers int) {
 	fs.IntVar(&wf.workers, "workers", defaultWorkers, "runs to execute at once on this host (0 = API only)")
-	fs.StringVar(&wf.work, "work", filepath.Join(os.TempDir(), "vanguard"), "root for throwaway workspaces")
+	fs.StringVar(&wf.work, "work", filepath.Join(os.TempDir(), "rtfm"), "root for throwaway workspaces")
 	fs.StringVar(&wf.out, "out", "service-runs", "directory for run artifacts (logs, patches)")
 	fs.StringVar(&wf.model, "model", "gemini-3.8-flash-medium", "default agent model")
 	fs.StringVar(&wf.agyBin, "agy", "agy", "path to the agy binary")
@@ -116,7 +116,7 @@ func (wf *workerFlags) register(fs *flag.FlagSet, defaultWorkers int) {
 	fs.StringVar(&wf.memory, "memory", "4g", "devbox memory")
 	fs.StringVar(&wf.cpus, "cpus", "2", "devbox CPUs")
 	fs.StringVar(&wf.docker, "docker", "docker", "docker binary")
-	fs.StringVar(&wf.envFile, "env-file", env("VANGUARD_ENV_FILE"), "read configuration from this KEY=VALUE file (the environment wins)")
+	fs.StringVar(&wf.envFile, "env-file", env("RTFM_ENV_FILE"), "read configuration from this KEY=VALUE file (the environment wins)")
 }
 
 func (wf *workerFlags) config(d *db.DB, e *serviceEnv, box *secretbox.Box, log *slog.Logger) worker.Config {
@@ -148,7 +148,7 @@ func openService(ctx context.Context, full bool) (*serviceEnv, *db.DB, *secretbo
 	}
 	box, err := secretbox.New(e.SecretKey)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("VANGUARD_SECRET_KEY: %w", err)
+		return nil, nil, nil, fmt.Errorf("RTFM_SECRET_KEY: %w", err)
 	}
 	d, err := db.Open(ctx, e.DatabaseURL)
 	if err != nil {
@@ -241,16 +241,16 @@ func cmdWorker(ctx context.Context, args []string) error {
 
 func cmdMigrate(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("migrate", flag.ContinueOnError)
-	envFile := fs.String("env-file", env("VANGUARD_ENV_FILE"), "read configuration from this KEY=VALUE file")
+	envFile := fs.String("env-file", env("RTFM_ENV_FILE"), "read configuration from this KEY=VALUE file")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	if err := loadEnvFile(*envFile); err != nil {
 		return err
 	}
-	url := env("VANGUARD_DATABASE_URL")
+	url := env("RTFM_DATABASE_URL")
 	if url == "" {
-		return errors.New("set VANGUARD_DATABASE_URL")
+		return errors.New("set RTFM_DATABASE_URL")
 	}
 	d, err := db.Open(ctx, url)
 	if err != nil {

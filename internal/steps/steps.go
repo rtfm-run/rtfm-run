@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"strings"
 
-	"vanguard.run/internal/db"
-	"vanguard.run/internal/report"
+	"rtfm.run/internal/db"
+	"rtfm.run/internal/report"
 )
 
 // Key identifies a doc step across runs: the doc plus its normalized

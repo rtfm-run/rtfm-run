@@ -14,7 +14,7 @@ import (
 )
 
 func TestNewManifest(t *testing.T) {
-	m := NewManifest("vanguard-dev-ab12", "https://x.example.com/", "", "http://127.0.0.1:9/done", false)
+	m := NewManifest("rtfm-dev-ab12", "https://x.example.com/", "", "http://127.0.0.1:9/done", false)
 	if m.HookAttributes.URL != "https://x.example.com/webhooks/github" || !m.HookAttributes.Active {
 		t.Errorf("hook = %+v", m.HookAttributes)
 	}
@@ -57,15 +57,15 @@ func TestConvertManifest(t *testing.T) {
 			return
 		}
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(map[string]any{"id": 7, "slug": "vanguard-dev-ab12", "client_id": "Iv23.x", "client_secret": "cs",
-			"webhook_secret": "ws", "pem": pemKey, "html_url": "https://github.com/apps/vanguard-dev-ab12", "owner": map[string]any{"login": "me", "id": 1}})
+		json.NewEncoder(w).Encode(map[string]any{"id": 7, "slug": "rtfm-dev-ab12", "client_id": "Iv23.x", "client_secret": "cs",
+			"webhook_secret": "ws", "pem": pemKey, "html_url": "https://github.com/apps/rtfm-dev-ab12", "owner": map[string]any{"login": "me", "id": 1}})
 	}))
 	defer srv.Close()
 	got, err := ConvertManifest(context.Background(), srv.URL, nil, "code123")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.ID != 7 || got.Slug != "vanguard-dev-ab12" || got.WebhookSecret != "ws" || got.Owner.Login != "me" {
+	if got.ID != 7 || got.Slug != "rtfm-dev-ab12" || got.WebhookSecret != "ws" || got.Owner.Login != "me" {
 		t.Errorf("got %+v", got)
 	}
 	if _, err := ConvertManifest(context.Background(), srv.URL, nil, "../../user"); err == nil {

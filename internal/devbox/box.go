@@ -50,7 +50,7 @@ type Box interface {
 // Backend starts boxes.
 type Backend interface {
 	Name() string
-	// Describe identifies the environment for reports, e.g. "docker:vanguard-devbox:latest".
+	// Describe identifies the environment for reports, e.g. "docker:rtfm-devbox:latest".
 	Describe() string
 	// Start launches a fresh box called name.
 	Start(ctx context.Context, name string) (Box, error)

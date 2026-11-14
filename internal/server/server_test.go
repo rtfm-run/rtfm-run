@@ -26,16 +26,16 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"vanguard.run/internal/db"
-	"vanguard.run/internal/ghapp"
-	"vanguard.run/internal/secretbox"
+	"rtfm.run/internal/db"
+	"rtfm.run/internal/ghapp"
+	"rtfm.run/internal/secretbox"
 )
 
 func testDB(t *testing.T) *db.DB {
 	t.Helper()
-	u := os.Getenv("VANGUARD_TEST_DATABASE_URL")
+	u := os.Getenv("RTFM_TEST_DATABASE_URL")
 	if u == "" {
-		t.Skip("VANGUARD_TEST_DATABASE_URL not set")
+		t.Skip("RTFM_TEST_DATABASE_URL not set")
 	}
 	ctx := context.Background()
 	schema := fmt.Sprintf("test_%d", mrand.Int64N(1<<40))
@@ -95,7 +95,7 @@ func newEnv(t *testing.T) *env {
 	gh := fakeGitHub(t)
 	t.Cleanup(gh.Close)
 	key, _ := rsa.GenerateKey(rand.Reader, 2048)
-	app := &ghapp.App{ID: 1, Slug: "vanguard-test", ClientID: "Iv1", ClientSecret: "s", WebhookSecret: "whsec", Key: key, APIBase: gh.URL, WebBase: gh.URL}
+	app := &ghapp.App{ID: 1, Slug: "rtfm-test", ClientID: "Iv1", ClientSecret: "s", WebhookSecret: "whsec", Key: key, APIBase: gh.URL, WebBase: gh.URL}
 	k := make([]byte, 32)
 	rand.Read(k)
 	box, _ := secretbox.New(base64.StdEncoding.EncodeToString(k))
@@ -145,10 +145,15 @@ func (e *env) signIn() {
 	if err != nil || res.StatusCode != 302 || res.Header.Get("Location") != "https://dash.example" {
 		e.t.Fatalf("callback: %v %v %s", res.StatusCode, err, res.Header.Get("Location"))
 	}
-	// The state is single-use.
+	// The state is single-use; failures go back to the dashboard's sign-in
+	// page with a reason rather than showing API JSON.
 	res, _ = e.client.Get(e.api.URL + "/auth/github/callback?code=c&state=" + url.QueryEscape(state))
-	if res.StatusCode != 400 {
-		e.t.Errorf("reused state accepted: %d", res.StatusCode)
+	if loc := res.Header.Get("Location"); res.StatusCode != 302 || !strings.HasPrefix(loc, "https://dash.example/login?error=") {
+		e.t.Errorf("reused state: %d %s", res.StatusCode, loc)
+	}
+	res, _ = e.client.Get(e.api.URL + "/")
+	if res.StatusCode != 302 || res.Header.Get("Location") != "https://dash.example" {
+		e.t.Errorf("api root: %d %s", res.StatusCode, res.Header.Get("Location"))
 	}
 }
 
@@ -186,7 +191,7 @@ func TestEndToEnd(t *testing.T) {
 	e.signIn()
 
 	code, me := e.do("GET", "/api/me", "", nil)
-	if code != 200 || me["user"].(map[string]any)["login"] != "alice" || !strings.Contains(me["install_url"].(string), "/apps/vanguard-test/") {
+	if code != 200 || me["user"].(map[string]any)["login"] != "alice" || !strings.Contains(me["install_url"].(string), "/apps/rtfm-test/") {
 		t.Fatalf("me = %d %v", code, me)
 	}
 	_, repos := e.do("GET", "/api/repos", "", nil)

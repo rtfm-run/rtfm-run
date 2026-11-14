@@ -15,12 +15,12 @@ import (
 )
 
 // testDB returns a migrated database in a fresh schema. Set
-// VANGUARD_TEST_DATABASE_URL (e.g. postgres://vanguard:vanguard@127.0.0.1:55432/vanguard).
+// RTFM_TEST_DATABASE_URL (e.g. postgres://rtfm:rtfm@127.0.0.1:55432/rtfm).
 func testDB(t *testing.T) *DB {
 	t.Helper()
-	url := os.Getenv("VANGUARD_TEST_DATABASE_URL")
+	url := os.Getenv("RTFM_TEST_DATABASE_URL")
 	if url == "" {
-		t.Skip("VANGUARD_TEST_DATABASE_URL not set")
+		t.Skip("RTFM_TEST_DATABASE_URL not set")
 	}
 	ctx := context.Background()
 	schema := fmt.Sprintf("test_%d", rand.Int64N(1<<40))

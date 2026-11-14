@@ -1,4 +1,4 @@
--- vanguard.run: initial schema.
+-- rtfm.run: initial schema.
 
 CREATE TABLE users (
     id               BIGSERIAL PRIMARY KEY,

@@ -1,12 +1,12 @@
-// Command vanguard tests quickstarts by having an agent follow them like a
+// Command rtfm tests quickstarts by having an agent follow them like a
 // new developer would.
 //
-//	vanguard run <repo-url|dir> --doc README.md --goal "…" [--success "cmd"]
-//	vanguard sweep targets.json [--parallel N]
-//	vanguard pr <target|run.json> [--open]
-//	vanguard creds set|list|rm [NAME]
-//	vanguard devbox build
-//	vanguard version
+//	rtfm run <repo-url|dir> --doc README.md --goal "…" [--success "cmd"]
+//	rtfm sweep targets.json [--parallel N]
+//	rtfm pr <target|run.json> [--open]
+//	rtfm creds set|list|rm [NAME]
+//	rtfm devbox build
+//	rtfm version
 package main
 
 import (
@@ -23,18 +23,18 @@ import (
 	"sync"
 	"time"
 
-	"vanguard.run/internal/creds"
-	"vanguard.run/internal/devbox"
-	"vanguard.run/internal/diagnose"
-	"vanguard.run/internal/github"
-	"vanguard.run/internal/guidelines"
-	"vanguard.run/internal/mcpexec"
-	"vanguard.run/internal/pipeline"
-	"vanguard.run/internal/prs"
-	"vanguard.run/internal/report"
-	"vanguard.run/internal/runner"
-	"vanguard.run/internal/stats"
-	"vanguard.run/internal/targets"
+	"rtfm.run/internal/creds"
+	"rtfm.run/internal/devbox"
+	"rtfm.run/internal/diagnose"
+	"rtfm.run/internal/github"
+	"rtfm.run/internal/guidelines"
+	"rtfm.run/internal/mcpexec"
+	"rtfm.run/internal/pipeline"
+	"rtfm.run/internal/prs"
+	"rtfm.run/internal/report"
+	"rtfm.run/internal/runner"
+	"rtfm.run/internal/stats"
+	"rtfm.run/internal/targets"
 )
 
 var version = "dev"
@@ -70,36 +70,36 @@ func main() {
 	case "devbox-mcp": // internal: launched by agy as the devbox MCP server
 		err = cmdDevboxMCP(ctx, os.Args[2:])
 	case "version", "--version", "-v":
-		fmt.Println("vanguard", version)
+		fmt.Println("rtfm", version)
 	case "help", "-h", "--help":
 		usage()
 	default:
-		fmt.Fprintf(os.Stderr, "vanguard: unknown command %q\n\n", os.Args[1])
+		fmt.Fprintf(os.Stderr, "rtfm: unknown command %q\n\n", os.Args[1])
 		usage()
 		os.Exit(2)
 	}
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "vanguard:", err)
+		fmt.Fprintln(os.Stderr, "rtfm:", err)
 		os.Exit(1)
 	}
 }
 
 func usage() {
-	fmt.Fprint(os.Stderr, `vanguard.run: an agent that tests your quickstart like a new developer
+	fmt.Fprint(os.Stderr, `rtfm.run: an agent that tests your quickstart like a new developer
 
 Usage:
-  vanguard run <repo-url|dir> [flags]   run the newhire agent on one quickstart
-  vanguard sweep <targets.json> [flags]  run many quickstarts and summarize
-  vanguard pr <target|run.json> [flags]  preview (or --open) a pull request for a verified fix
-  vanguard creds set|list|rm [NAME]     manage credentials quickstarts may need
-  vanguard devbox build                 build the blank-slate devbox image
-  vanguard serve [--workers N]          run the API (+ workers) for the dashboard
-  vanguard worker [--workers N]         run workers only (KVM hosts)
-  vanguard migrate                      apply database migrations
-  vanguard github-app create            register the GitHub App (one click on GitHub)
-  vanguard version
+  rtfm run <repo-url|dir> [flags]   run the newhire agent on one quickstart
+  rtfm sweep <targets.json> [flags]  run many quickstarts and summarize
+  rtfm pr <target|run.json> [flags]  preview (or --open) a pull request for a verified fix
+  rtfm creds set|list|rm [NAME]     manage credentials quickstarts may need
+  rtfm devbox build                 build the blank-slate devbox image
+  rtfm serve [--workers N]          run the API (+ workers) for the dashboard
+  rtfm worker [--workers N]         run workers only (KVM hosts)
+  rtfm migrate                      apply database migrations
+  rtfm github-app create            register the GitHub App (one click on GitHub)
+  rtfm version
 
-Run 'vanguard run -h' or 'vanguard sweep -h' for flags.
+Run 'rtfm run -h' or 'rtfm sweep -h' for flags.
 `)
 }
 
@@ -118,7 +118,7 @@ func (a *agentFlags) register(fs *flag.FlagSet, fixByDefault bool) {
 	fs.StringVar(&a.effort, "effort", "", "agy reasoning effort (low|medium|high|xhigh|max)")
 	fs.StringVar(&a.agyBin, "agy", "agy", "path to the agy binary")
 	fs.DurationVar(&a.timeout, "timeout", 15*time.Minute, "max time for the agent per target")
-	fs.StringVar(&a.workRoot, "work", filepath.Join(os.TempDir(), "vanguard"), "root for throwaway workspaces")
+	fs.StringVar(&a.workRoot, "work", filepath.Join(os.TempDir(), "rtfm"), "root for throwaway workspaces")
 	fs.StringVar(&a.out, "out", "runs", "directory for run artifacts")
 	fs.BoolVar(&a.keep, "keep", false, "keep the workspace and container after the run")
 	fs.StringVar(&a.backend, "backend", "auto", "devbox backend: firecracker (microVM with systemd and Docker inside), docker (container), or auto (firecracker when available, else docker)")
@@ -189,7 +189,7 @@ func cmdRun(ctx context.Context, args []string) error {
 	fs.StringVar(&t.Ref, "ref", "", "git branch or tag")
 	fs.StringVar(&t.Name, "name", "", "target name (default: derived from repo)")
 	fs.Usage = func() {
-		fmt.Fprintln(fs.Output(), "Usage: vanguard run <repo-url|dir> [flags]")
+		fmt.Fprintln(fs.Output(), "Usage: rtfm run <repo-url|dir> [flags]")
 		fs.PrintDefaults()
 	}
 	pos, err := parseInterspersed(fs, args)
@@ -246,7 +246,7 @@ func (a *agentFlags) newBackend(ctx context.Context) (devbox.Backend, error) {
 		if err == nil && fc.Ready(ctx) == nil {
 			return fc, nil
 		}
-		fmt.Fprintln(os.Stderr, "ℹ microVM backend unavailable (needs /dev/kvm and 'vanguard devbox build --backend firecracker'); using docker containers")
+		fmt.Fprintln(os.Stderr, "ℹ microVM backend unavailable (needs /dev/kvm and 'rtfm devbox build --backend firecracker'); using docker containers")
 	}
 	switch a.backend {
 	case "docker":
@@ -296,7 +296,7 @@ func cmdDevbox(ctx context.Context, args []string) error {
 		return err
 	}
 	if len(pos) != 1 || pos[0] != "build" {
-		return errors.New("usage: vanguard devbox build [--backend docker|firecracker]")
+		return errors.New("usage: rtfm devbox build [--backend docker|firecracker]")
 	}
 	base := devbox.Docker{Bin: *docker}
 	switch *backend {
@@ -354,7 +354,7 @@ func cmdSweep(ctx context.Context, args []string) error {
 	parallel := fs.Int("parallel", 2, "targets to run at once")
 	only := fs.String("only", "", "comma-separated target names to run (default: all)")
 	fs.Usage = func() {
-		fmt.Fprintln(fs.Output(), "Usage: vanguard sweep <targets.json> [flags]")
+		fmt.Fprintln(fs.Output(), "Usage: rtfm sweep <targets.json> [flags]")
 		fs.PrintDefaults()
 	}
 	pos, err := parseInterspersed(fs, args)
@@ -456,7 +456,7 @@ func progressLine(r *report.Run) string {
 	case r.Error != "":
 		return fmt.Sprintf("⚠️  %s: %s", r.Target, r.Error)
 	case r.Blocked():
-		return fmt.Sprintf("🔑 %s: blocked, needs %s (vanguard creds set NAME)", r.Target, strings.Join(r.MissingCredentials(), ", "))
+		return fmt.Sprintf("🔑 %s: blocked, needs %s (rtfm creds set NAME)", r.Target, strings.Join(r.MissingCredentials(), ", "))
 	case r.Works() && fail+unsup == 0:
 		return fmt.Sprintf("✅ %s (%d steps, %s)", r.Target, pass, r.Duration().Round(time.Second))
 	}
@@ -481,7 +481,7 @@ func slicesFilter[T any](in []T, keep func(T) bool) []T {
 }
 
 func cmdCreds(args []string) error {
-	usage := errors.New("usage: vanguard creds set NAME | list | rm NAME")
+	usage := errors.New("usage: rtfm creds set NAME | list | rm NAME")
 	if len(args) == 0 {
 		return usage
 	}
@@ -513,7 +513,7 @@ func cmdCreds(args []string) error {
 		if !creds.TTYAvailable() {
 			return errors.New("creds set needs a terminal to read the value")
 		}
-		v, _, ok, err := creds.TTYPrompter{}.Prompt(context.Background(), "your quickstarts", creds.Request{Name: name, Description: "Saved for future vanguard runs."})
+		v, _, ok, err := creds.TTYPrompter{}.Prompt(context.Background(), "your quickstarts", creds.Request{Name: name, Description: "Saved for future rtfm runs."})
 		if err != nil {
 			return err
 		}
@@ -546,7 +546,7 @@ func cmdPR(ctx context.Context, args []string) error {
 	issue := fs.String("issue", "", "issue URL to reference (for projects that require an issue first)")
 	model := fs.String("model", "gemini-3.8-flash-medium", "agy model used to apply the contribution guidelines")
 	fs.Usage = func() {
-		fmt.Fprintln(fs.Output(), "Usage: vanguard pr <target-name|path/to/run.json> [--open] [--signoff] [--attest] [--cla-signed] [--issue URL] [--allow-partial]")
+		fmt.Fprintln(fs.Output(), "Usage: rtfm pr <target-name|path/to/run.json> [--open] [--signoff] [--attest] [--cla-signed] [--issue URL] [--allow-partial]")
 		fs.PrintDefaults()
 	}
 	pos, err := parseInterspersed(fs, args)
@@ -710,7 +710,7 @@ func originalDoc(ctx context.Context, dir string, run *report.Run, fixed []byte)
 	if b, err := os.ReadFile(filepath.Join(dir, run.ID+".orig"+ext)); err == nil {
 		return b, nil
 	}
-	tmp, err := os.MkdirTemp("", "vanguard-pr-")
+	tmp, err := os.MkdirTemp("", "rtfm-pr-")
 	if err != nil {
 		return nil, err
 	}
@@ -738,7 +738,7 @@ func githubToken() (string, error) {
 			return v, nil
 		}
 	}
-	return "", errors.New("no GitHub token: set GITHUB_TOKEN (or GH_TOKEN), or run 'vanguard creds set GITHUB_TOKEN'; it needs permission to fork, push and open pull requests (public_repo scope, or fine-grained contents + pull requests)")
+	return "", errors.New("no GitHub token: set GITHUB_TOKEN (or GH_TOKEN), or run 'rtfm creds set GITHUB_TOKEN'; it needs permission to fork, push and open pull requests (public_repo scope, or fine-grained contents + pull requests)")
 }
 
 // gitIdentity reads the user's git name and email for a DCO sign-off.

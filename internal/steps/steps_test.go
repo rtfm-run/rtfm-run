@@ -3,7 +3,7 @@ package steps
 import (
 	"testing"
 
-	"vanguard.run/internal/report"
+	"rtfm.run/internal/report"
 )
 
 func TestChecksOutAndKeys(t *testing.T) {

@@ -26,7 +26,7 @@ func testApp(t *testing.T, srv *httptest.Server) *App {
 	if err != nil {
 		t.Fatal(err)
 	}
-	a := &App{ID: 42, Slug: "vanguard-run", ClientID: "Iv1.abc", ClientSecret: "shh", WebhookSecret: "hook", Key: key}
+	a := &App{ID: 42, Slug: "rtfm-run", ClientID: "Iv1.abc", ClientSecret: "shh", WebhookSecret: "hook", Key: key}
 	if srv != nil {
 		a.APIBase, a.WebBase = srv.URL, srv.URL
 	}

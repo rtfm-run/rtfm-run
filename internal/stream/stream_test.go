@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"vanguard.run/internal/report"
+	"rtfm.run/internal/report"
 )
 
 // gemini_missing.jsonl is a real agy 1.5.8 stream: the agent followed a

@@ -21,16 +21,16 @@ import (
 	"strings"
 	"time"
 
-	"vanguard.run/internal/creds"
-	"vanguard.run/internal/devbox"
-	"vanguard.run/internal/diagnose"
-	"vanguard.run/internal/fix"
-	"vanguard.run/internal/persona"
-	"vanguard.run/internal/report"
-	"vanguard.run/internal/runner"
-	"vanguard.run/internal/sandbox"
-	"vanguard.run/internal/stream"
-	"vanguard.run/internal/targets"
+	"rtfm.run/internal/creds"
+	"rtfm.run/internal/devbox"
+	"rtfm.run/internal/diagnose"
+	"rtfm.run/internal/fix"
+	"rtfm.run/internal/persona"
+	"rtfm.run/internal/report"
+	"rtfm.run/internal/runner"
+	"rtfm.run/internal/sandbox"
+	"rtfm.run/internal/stream"
+	"rtfm.run/internal/targets"
 )
 
 // Config controls a pipeline run.

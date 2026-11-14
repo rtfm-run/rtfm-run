@@ -21,15 +21,15 @@ import (
 	"time"
 )
 
-//go:embed vm/Dockerfile vm/entrypoint.sh vm/vanguard-agent.service vm/vanguard-init vm/agent/main.go
+//go:embed vm/Dockerfile vm/entrypoint.sh vm/rtfm-agent.service vm/rtfm-init vm/agent/main.go
 var vmFiles embed.FS
 
 // DefaultVMImage is the microVM runner image built by Firecracker.Build.
-const DefaultVMImage = "vanguard-vmbox:latest"
+const DefaultVMImage = "rtfm-vmbox:latest"
 
 // Firecracker is the microVM backend: each box is a container (with
 // /dev/kvm) that boots a Firecracker microVM. The guest is the devbox image
-// plus systemd and the Docker engine; vanguard talks to an agent inside the
+// plus systemd and the Docker engine; rtfm talks to an agent inside the
 // guest over HTTP via a loopback-only published port. The container only
 // supplies networking; the isolation boundary is the VM.
 type Firecracker struct {
@@ -57,7 +57,7 @@ func (f Firecracker) Ready(ctx context.Context) error {
 		f.Close()
 	}
 	if exec.CommandContext(ctx, f.bin(), "image", "inspect", f.image()).Run() != nil {
-		return fmt.Errorf("microVM image %s not found; run 'vanguard devbox build --backend firecracker'", f.image())
+		return fmt.Errorf("microVM image %s not found; run 'rtfm devbox build --backend firecracker'", f.image())
 	}
 	return nil
 }
@@ -65,7 +65,7 @@ func (f Firecracker) Ready(ctx context.Context) error {
 // Build builds the runner image (guest rootfs, kernel, Firecracker). The
 // devbox image must already exist; it is the guest's base.
 func (f Firecracker) Build(ctx context.Context, out *os.File) error {
-	dir, err := os.MkdirTemp("", "vanguard-vmbox-")
+	dir, err := os.MkdirTemp("", "rtfm-vmbox-")
 	if err != nil {
 		return err
 	}
@@ -87,7 +87,7 @@ func (f Firecracker) Build(ctx context.Context, out *os.File) error {
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(filepath.Join(dir, "agent", "go.mod"), []byte("module vanguard-agent\n\ngo 1.27\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "agent", "go.mod"), []byte("module rtfm-agent\n\ngo 1.27\n"), 0o644); err != nil {
 		return err
 	}
 	cmd := exec.CommandContext(ctx, f.bin(), "build", "-t", f.image(),
@@ -116,7 +116,7 @@ func (f Firecracker) Start(ctx context.Context, name string) (Box, error) {
 	}
 	args := []string{"run", "-d",
 		"--name", name,
-		"--label", "vanguard.run=devbox",
+		"--label", "rtfm.run=devbox",
 		"--device", "/dev/kvm",
 		"--device", "/dev/net/tun",
 		"--cap-add", "NET_ADMIN",

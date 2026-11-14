@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"vanguard.run/internal/github"
-	"vanguard.run/internal/prs"
+	"rtfm.run/internal/github"
+	"rtfm.run/internal/prs"
 )
 
 func TestDiscover(t *testing.T) {
@@ -70,8 +70,8 @@ func TestDiscover(t *testing.T) {
 }
 
 func proposal() *prs.Proposal {
-	return &prs.Proposal{Title: "docs: fix quickstart", Branch: "vanguard/fix-quickstart-abc", CommitMessage: "docs: fix\n",
-		Body: "draft body by vanguard.run"}
+	return &prs.Proposal{Title: "docs: fix quickstart", Branch: "rtfm/fix-quickstart-abc", CommitMessage: "docs: fix\n",
+		Body: "draft body by rtfm.run"}
 }
 
 func decision(js string) *Decision {
@@ -109,7 +109,7 @@ func TestApplyBlocksUntilTheHumanConfirms(t *testing.T) {
 	if p.Title != "docs(readme): fix the hello flag" || p.Branch != "docs/fix-hello-flag" {
 		t.Errorf("conventions not applied: %q %q", p.Title, p.Branch)
 	}
-	if !strings.Contains(p.Body, "vanguard.run") {
+	if !strings.Contains(p.Body, "rtfm.run") {
 		t.Errorf("AI disclosure must always be kept:\n%s", p.Body)
 	}
 	if len(o.Warnings) != 1 || !strings.Contains(o.Warnings[0], "CHANGELOG") {
@@ -171,7 +171,7 @@ func TestApplyRejectsBadBranchNames(t *testing.T) {
 	d.BranchName = "../../evil branch"
 	p := proposal()
 	o := Apply(p, d, &Found{}, Options{Signoff: true, Identity: &github.Identity{Name: "a", Email: "b"}, Attest: true})
-	if p.Branch != "vanguard/fix-quickstart-abc" || len(o.Warnings) == 0 {
+	if p.Branch != "rtfm/fix-quickstart-abc" || len(o.Warnings) == 0 {
 		t.Errorf("branch = %q warnings = %v", p.Branch, o.Warnings)
 	}
 }

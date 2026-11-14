@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"vanguard.run/internal/report"
+	"rtfm.run/internal/report"
 )
 
 func TestClassify(t *testing.T) {

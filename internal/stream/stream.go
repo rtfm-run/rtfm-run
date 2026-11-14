@@ -18,7 +18,7 @@ import (
 	"strconv"
 	"strings"
 
-	"vanguard.run/internal/report"
+	"rtfm.run/internal/report"
 )
 
 // Event is one decoded line.

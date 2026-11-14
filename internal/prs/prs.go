@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"strings"
 
-	"vanguard.run/internal/fix"
-	"vanguard.run/internal/github"
-	"vanguard.run/internal/report"
+	"rtfm.run/internal/fix"
+	"rtfm.run/internal/github"
+	"rtfm.run/internal/report"
 )
 
 // Proposal is everything needed to open the PR.
@@ -74,7 +74,7 @@ func Build(run, verify *report.Run, original, fixed []byte) *Proposal {
 		Original:   original,
 		Fixed:      fixed,
 		Patch:      f.Patch,
-		Branch:     "vanguard/fix-quickstart-" + short,
+		Branch:     "rtfm/fix-quickstart-" + short,
 		Title:      fmt.Sprintf("docs: fix quickstart steps in %s that fail on a fresh machine", run.DocPath),
 	}
 
@@ -83,7 +83,7 @@ func Build(run, verify *report.Run, original, fixed []byte) *Proposal {
 	for _, c := range f.Changes {
 		fmt.Fprintf(&cm, "- %s\n", oneLine(c.Summary))
 	}
-	cm.WriteString("\nFound and verified by vanguard.run, which follows quickstarts on a fresh machine.\n")
+	cm.WriteString("\nFound and verified by rtfm.run, which follows quickstarts on a fresh machine.\n")
 	p.CommitMessage = cm.String()
 	p.Body = body(run, verify)
 	return p
@@ -147,7 +147,7 @@ func body(run, verify *report.Run) string {
 		b.WriteString("\n")
 	}
 	b.WriteString("\n</details>\n\n---\n")
-	b.WriteString("_This pull request was prepared by vanguard.run, which tests quickstarts automatically. Please review it like any other contribution; if something here is wrong, a comment saying so helps us improve._\n")
+	b.WriteString("_This pull request was prepared by rtfm.run, which tests quickstarts automatically. Please review it like any other contribution; if something here is wrong, a comment saying so helps us improve._\n")
 	return b.String()
 }
 
@@ -189,7 +189,7 @@ func environment(sandbox string) string {
 }
 
 // ErrDocChanged means upstream's doc no longer matches what was tested.
-var ErrDocChanged = errors.New("the doc has changed upstream since it was tested; rerun vanguard on the current version")
+var ErrDocChanged = errors.New("the doc has changed upstream since it was tested; rerun rtfm on the current version")
 
 // Opened describes a created PR.
 type Opened struct {

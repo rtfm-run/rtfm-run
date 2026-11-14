@@ -107,8 +107,8 @@ func TestTarRejectsEscapes(t *testing.T) {
 }
 
 func TestParseCmdline(t *testing.T) {
-	m := parseCmdline("console=ttyS0 vanguard.token=abc vanguard.dns=1.1.1.1,8.8.8.8 quiet")
-	if m["vanguard.token"] != "abc" || m["vanguard.dns"] != "1.1.1.1,8.8.8.8" {
+	m := parseCmdline("console=ttyS0 rtfm.token=abc rtfm.dns=1.1.1.1,8.8.8.8 quiet")
+	if m["rtfm.token"] != "abc" || m["rtfm.dns"] != "1.1.1.1,8.8.8.8" {
 		t.Errorf("parsed = %v", m)
 	}
 }

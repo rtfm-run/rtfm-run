@@ -174,11 +174,11 @@ func TestResolve(t *testing.T) {
 }
 
 func TestMaxBoxes(t *testing.T) {
-	t.Setenv("VANGUARD_MAX_BOXES", "3")
+	t.Setenv("RTFM_MAX_BOXES", "3")
 	if MaxBoxes(4096) != 3 {
 		t.Error("env override ignored")
 	}
-	t.Setenv("VANGUARD_MAX_BOXES", "")
+	t.Setenv("RTFM_MAX_BOXES", "")
 	total := memTotalMiB()
 	if total > 0 {
 		want := max(1, (total-reserveMiB)/4096)

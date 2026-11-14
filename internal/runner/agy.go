@@ -13,9 +13,9 @@ import (
 	"strings"
 	"time"
 
-	"vanguard.run/internal/mcpexec"
-	"vanguard.run/internal/persona"
-	"vanguard.run/internal/stream"
+	"rtfm.run/internal/mcpexec"
+	"rtfm.run/internal/persona"
+	"rtfm.run/internal/stream"
 )
 
 // Agy runs the newhire persona with Antigravity CLI in headless mode:
@@ -35,7 +35,7 @@ type Agy struct {
 	Model   string        // e.g. gemini-3.8-flash-medium; empty = agy default
 	Effort  string        // low|medium|high|xhigh|max; empty = default
 	Timeout time.Duration // agy --print-timeout; 0 = none
-	// SelfBin is this vanguard binary, launched by agy as the devbox MCP
+	// SelfBin is this rtfm binary, launched by agy as the devbox MCP
 	// server. Defaults to os.Executable().
 	SelfBin string
 	Docker  string   // docker binary passed to the MCP server
@@ -47,7 +47,7 @@ func (a Agy) Name() string { return "agy" }
 // MCPChildEnv is set in the devbox MCP server's environment. Code that
 // starts devboxes refuses to run when it is set, so a misconfigured server
 // binary can never recurse into starting more devboxes.
-const MCPChildEnv = "VANGUARD_DEVBOX_MCP_CHILD"
+const MCPChildEnv = "RTFM_DEVBOX_MCP_CHILD"
 
 func isTestBinary(p string) bool {
 	return strings.HasSuffix(filepath.Base(p), ".test") || strings.Contains(p, string(filepath.Separator)+"go-build")
@@ -189,13 +189,13 @@ func (a Agy) installMCP(req Request) error {
 	if self == "" {
 		var err error
 		if self, err = os.Executable(); err != nil {
-			return fmt.Errorf("agy: locate vanguard binary: %w", err)
+			return fmt.Errorf("agy: locate rtfm binary: %w", err)
 		}
 	}
 	// Launching a Go test binary as the MCP server re-runs the tests inside
 	// it, which can recurse (each level starting another devbox).
 	if isTestBinary(self) {
-		return fmt.Errorf("agy: %s is a Go test binary, not vanguard; set Agy.SelfBin to a built vanguard binary", self)
+		return fmt.Errorf("agy: %s is a Go test binary, not rtfm; set Agy.SelfBin to a built rtfm binary", self)
 	}
 	mcpArgs := []string{"devbox-mcp", "--backend", req.BoxBackend, "--box", req.BoxID, "--workdir", req.BoxWorkdir}
 	if req.ExecLog != "" {

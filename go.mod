@@ -1,4 +1,4 @@
-module vanguard.run
+module rtfm.run
 
 go 1.27
 

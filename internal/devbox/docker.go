@@ -17,7 +17,7 @@ import (
 var dockerfile []byte
 
 // DefaultImage is the devbox image tag built by Build.
-const DefaultImage = "vanguard-devbox:latest"
+const DefaultImage = "rtfm-devbox:latest"
 
 // Docker is the container backend. With rootless Docker, root in the box
 // maps to the invoking user on the host. Nothing from the host is mounted
@@ -49,7 +49,7 @@ func (d Docker) Build(ctx context.Context, out *os.File) error {
 // Ready checks that the image exists locally.
 func (d Docker) Ready(ctx context.Context) error {
 	if exec.CommandContext(ctx, d.bin(), "image", "inspect", d.image()).Run() != nil {
-		return fmt.Errorf("devbox image %s not found; run 'vanguard devbox build'", d.image())
+		return fmt.Errorf("devbox image %s not found; run 'rtfm devbox build'", d.image())
 	}
 	return nil
 }
@@ -69,7 +69,7 @@ func (d Docker) Start(ctx context.Context, name string) (Box, error) {
 	args := []string{"run", "-d",
 		"--name", name,
 		"--hostname", "devbox",
-		"--label", "vanguard.run=devbox",
+		"--label", "rtfm.run=devbox",
 		"--security-opt", "no-new-privileges",
 		"-w", DefaultWorkdir,
 	}

@@ -3,7 +3,7 @@
 //
 //   - exec: run a shell command in the box
 //   - read_file, write_file, edit_file, list_dir: files in the box
-//   - request_credential: ask the user (via vanguard's credential broker)
+//   - request_credential: ask the user (via rtfm's credential broker)
 //     for a credential; if provided, it is injected into the environment of
 //     every later exec call and redacted from all output. The agent never
 //     sees the value.
@@ -11,7 +11,7 @@
 // agy launches it as an MCP server for the run. agy's own shell and file
 // tools are denied, so nothing the agent does touches the host; that also
 // keeps the box backend swappable (container, microVM, remote sandbox).
-// Commands and file writes are appended to a JSONL log that vanguard reads
+// Commands and file writes are appended to a JSONL log that rtfm reads
 // as ground-truth evidence.
 package mcpexec
 
@@ -27,8 +27,8 @@ import (
 	"sync"
 	"time"
 
-	"vanguard.run/internal/creds"
-	"vanguard.run/internal/devbox"
+	"rtfm.run/internal/creds"
+	"rtfm.run/internal/devbox"
 )
 
 // ServerName is the key used in mcp_config.json; agy permission rules

@@ -18,7 +18,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"vanguard.run/internal/report"
+	"rtfm.run/internal/report"
 )
 
 // Applied is a substitution made from run evidence.
@@ -65,7 +65,7 @@ func FromRun(run *report.Run, doc string) (string, []Applied) {
 // looksMachineSpecific rejects commands that embed paths of the run's own
 // throwaway workspace, which would be wrong in published docs.
 func looksMachineSpecific(cmd string) bool {
-	return strings.Contains(cmd, "/vanguard/ws-") || strings.Contains(cmd, "/tmp/vanguard")
+	return strings.Contains(cmd, "/rtfm/ws-") || strings.Contains(cmd, "/tmp/rtfm")
 }
 
 func squash(s string) string { return report.NormalizeCommand(s) }
@@ -164,7 +164,7 @@ func UnifiedDiff(ctx context.Context, name, before, after string) (string, error
 	if before == after {
 		return "", nil
 	}
-	dir, err := os.MkdirTemp("", "vanguard-diff-")
+	dir, err := os.MkdirTemp("", "rtfm-diff-")
 	if err != nil {
 		return "", err
 	}

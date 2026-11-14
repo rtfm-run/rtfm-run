@@ -1,8 +1,8 @@
-// Command vanguard-agent runs inside a devbox microVM and gives vanguard
+// Command rtfm-agent runs inside a devbox microVM and gives rtfm
 // (on the host) exec and file access to the guest over HTTP.
 //
 // It reads its bearer token and DNS servers from the kernel command line
-// (vanguard.token=…, vanguard.dns=a,b) and listens on :7000. Every request
+// (rtfm.token=…, rtfm.dns=a,b) and listens on :7000. Every request
 // except /health must carry "Authorization: Bearer <token>".
 //
 //	GET  /health
@@ -46,11 +46,11 @@ var (
 func main() {
 	cmdline, _ := os.ReadFile("/proc/cmdline")
 	params := parseCmdline(string(cmdline))
-	token := params["vanguard.token"]
+	token := params["rtfm.token"]
 	if token == "" {
-		log.Fatal("vanguard-agent: no vanguard.token on the kernel command line")
+		log.Fatal("rtfm-agent: no rtfm.token on the kernel command line")
 	}
-	if dns := params["vanguard.dns"]; dns != "" {
+	if dns := params["rtfm.dns"]; dns != "" {
 		var b strings.Builder
 		for _, ns := range strings.Split(dns, ",") {
 			if ns = strings.TrimSpace(ns); ns != "" {
@@ -59,7 +59,7 @@ func main() {
 		}
 		_ = os.Remove("/etc/resolv.conf") // may be a dangling symlink
 		if err := os.WriteFile("/etc/resolv.conf", []byte(b.String()), 0o644); err != nil {
-			log.Printf("vanguard-agent: resolv.conf: %v", err)
+			log.Printf("rtfm-agent: resolv.conf: %v", err)
 		}
 	}
 	_ = os.MkdirAll(defaultWorkdir, 0o755)
@@ -73,7 +73,7 @@ func main() {
 	mux.HandleFunc("PUT /tar", handleTar)
 
 	srv := &http.Server{Addr: ":7000", Handler: auth(token, mux), ReadHeaderTimeout: 10 * time.Second}
-	log.Printf("vanguard-agent: listening on :7000")
+	log.Printf("rtfm-agent: listening on :7000")
 	log.Fatal(srv.ListenAndServe())
 }
 

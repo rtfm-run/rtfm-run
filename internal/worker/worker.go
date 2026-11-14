@@ -13,16 +13,16 @@ import (
 	"path/filepath"
 	"time"
 
-	"vanguard.run/internal/creds"
-	"vanguard.run/internal/db"
-	"vanguard.run/internal/devbox"
-	"vanguard.run/internal/ghapp"
-	"vanguard.run/internal/pipeline"
-	"vanguard.run/internal/report"
-	"vanguard.run/internal/runner"
-	"vanguard.run/internal/secretbox"
-	"vanguard.run/internal/steps"
-	"vanguard.run/internal/targets"
+	"rtfm.run/internal/creds"
+	"rtfm.run/internal/db"
+	"rtfm.run/internal/devbox"
+	"rtfm.run/internal/ghapp"
+	"rtfm.run/internal/pipeline"
+	"rtfm.run/internal/report"
+	"rtfm.run/internal/runner"
+	"rtfm.run/internal/secretbox"
+	"rtfm.run/internal/steps"
+	"rtfm.run/internal/targets"
 )
 
 // Config configures a worker process.

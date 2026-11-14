@@ -1,11 +1,11 @@
 [Unit]
-Description=vanguard devbox agent
+Description=rtfm devbox agent
 After=network.target
 Wants=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/vanguard-agent
+ExecStart=/usr/local/bin/rtfm-agent
 Restart=always
 RestartSec=1
 EnvironmentFile=-/etc/environment

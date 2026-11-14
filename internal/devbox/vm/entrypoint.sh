@@ -5,7 +5,7 @@
 #
 # Disks: /vm/rootfs.ext4 is attached read-only and shared by every box (no
 # copy); each box gets a fresh sparse scratch disk of VG_DISK that the guest
-# overlays on top (see /sbin/vanguard-init in the guest).
+# overlays on top (see /sbin/rtfm-init in the guest).
 #
 # Network: tap0 (172.16.0.1/30) ↔ guest eth0 (172.16.0.2), NAT out of the
 # container's own interface. The guest agent's port 7000 is forwarded to the
@@ -41,7 +41,7 @@ cat > /run/vm/config.json <<EOF
 {
   "boot-source": {
     "kernel_image_path": "/vm/vmlinux",
-    "boot_args": "console=ttyS0 reboot=k panic=1 pci=off root=/dev/vda ro init=/sbin/vanguard-init ip=$GUEST::$HOSTIP:255.255.255.252::eth0:off vanguard.token=$VG_TOKEN vanguard.dns=$DNS"
+    "boot_args": "console=ttyS0 reboot=k panic=1 pci=off root=/dev/vda ro init=/sbin/rtfm-init ip=$GUEST::$HOSTIP:255.255.255.252::eth0:off rtfm.token=$VG_TOKEN rtfm.dns=$DNS"
   },
   "drives": [
     {"drive_id": "rootfs", "path_on_host": "/vm/rootfs.ext4", "is_root_device": true, "is_read_only": true},

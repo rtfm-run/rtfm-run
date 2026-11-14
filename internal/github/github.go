@@ -81,7 +81,7 @@ func (c *Client) Do(ctx context.Context, method, path string, in, out any) error
 	}
 	req.Header.Set("Accept", "application/vnd.github+json")
 	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
-	req.Header.Set("User-Agent", "vanguard.run")
+	req.Header.Set("User-Agent", "rtfm.run")
 	if c.Token != "" {
 		req.Header.Set("Authorization", "Bearer "+c.Token)
 	}

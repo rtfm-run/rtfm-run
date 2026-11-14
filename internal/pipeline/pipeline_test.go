@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"vanguard.run/internal/runner"
-	"vanguard.run/internal/targets"
+	"rtfm.run/internal/runner"
+	"rtfm.run/internal/targets"
 )
 
 func TestRecursionGuard(t *testing.T) {

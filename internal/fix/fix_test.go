@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"vanguard.run/internal/report"
+	"rtfm.run/internal/report"
 )
 
 const doc = "3. Say hello:\n\n   ```sh\n   .venv/bin/hello --user newhire\n   ```\n\n4. Explain:\n\n   ```sh\n   gemini -p \"Explain\"\n   ```\n"
@@ -63,8 +63,8 @@ func TestFromRunWholeCommandsOnly(t *testing.T) {
 
 func TestFromRunRejectsMachinePaths(t *testing.T) {
 	run := &report.Run{
-		Steps:    []report.Step{{Index: 1, Status: report.StatusUnsupported, DocCommand: "./run.sh", Command: "/tmp/vanguard/ws-123/project/run.sh"}},
-		Commands: []report.Command{{Line: "/tmp/vanguard/ws-123/project/run.sh", ExitCode: 0}},
+		Steps:    []report.Step{{Index: 1, Status: report.StatusUnsupported, DocCommand: "./run.sh", Command: "/tmp/rtfm/ws-123/project/run.sh"}},
+		Commands: []report.Command{{Line: "/tmp/rtfm/ws-123/project/run.sh", ExitCode: 0}},
 	}
 	if _, applied := FromRun(run, "run ./run.sh"); len(applied) != 0 {
 		t.Errorf("applied machine-specific fix: %+v", applied)

@@ -12,8 +12,8 @@ import (
 	"sync"
 	"testing"
 
-	"vanguard.run/internal/github"
-	"vanguard.run/internal/report"
+	"rtfm.run/internal/github"
+	"rtfm.run/internal/report"
 )
 
 const orig = "## Deploy\n\n```\n$ docker compose up -d\n```\n"
@@ -23,7 +23,7 @@ func demoRun(status string) *report.Run {
 	return &report.Run{
 		ID: "20261114-075620-fe131b", Repo: "https://github.com/docker/awesome-compose",
 		BaseCommit: "abc123", DocPath: "flask-redis/README.md", Goal: "get the page-view counter",
-		Sandbox: "devbox:firecracker:vanguard-vmbox:latest", Model: "gemini-3.8-flash-medium",
+		Sandbox: "devbox:firecracker:rtfm-vmbox:latest", Model: "gemini-3.8-flash-medium",
 		Steps: []report.Step{{Index: 1, Status: report.StatusUnsupported, Failure: report.KindStaleCommand,
 			DocCommand: "docker compose up -d", Command: "cd flask-redis && docker compose up -d",
 			Diagnosis: "Docs say `docker compose up -d`; what actually worked was `cd flask-redis && docker compose up -d`."}},
@@ -64,7 +64,7 @@ func TestBuildBody(t *testing.T) {
 	verify := &report.Run{Steps: []report.Step{{Status: report.StatusPass}, {Status: report.StatusPass}},
 		SuccessCheck: &report.Command{Line: "curl -fsS localhost:8000", ExitCode: 0}}
 	p := Build(demoRun(report.FixVerified), verify, []byte(orig), []byte(fixed))
-	if p.Branch != "vanguard/fix-quickstart-fe131b" {
+	if p.Branch != "rtfm/fix-quickstart-fe131b" {
 		t.Errorf("branch = %q", p.Branch)
 	}
 	for _, want := range []string{
@@ -72,7 +72,7 @@ func TestBuildBody(t *testing.T) {
 		"It worked as `cd flask-redis && docker compose up -d`.",
 		"**Step 1:** Change directory to flask-redis first.", "Evidence: compose.yaml is in flask-redis/, not the repository root.",
 		"reached the goal with no problems", "Tested commit: `abc123`", "2 steps passed",
-		"prepared by vanguard.run",
+		"prepared by rtfm.run",
 	} {
 		if !strings.Contains(p.Body, want) {
 			t.Errorf("body missing %q:\n%s", want, p.Body)
@@ -184,11 +184,11 @@ func TestOpenViaFork(t *testing.T) {
 	if opened.URL != "https://github.com/docker/awesome-compose/pull/7" || opened.Fork != "me/awesome-compose" {
 		t.Errorf("opened = %+v", opened)
 	}
-	if !strings.HasPrefix(g.committed, "/repos/me/awesome-compose/contents/flask-redis/README.md@vanguard/fix-quickstart-fe131b:") ||
+	if !strings.HasPrefix(g.committed, "/repos/me/awesome-compose/contents/flask-redis/README.md@rtfm/fix-quickstart-fe131b:") ||
 		!strings.HasSuffix(g.committed, fixed) {
 		t.Errorf("committed = %q", g.committed)
 	}
-	if g.pr["head"] != "me:vanguard/fix-quickstart-fe131b" || g.pr["base"] != "main" || g.pr["maintainer_can_modify"] != true {
+	if g.pr["head"] != "me:rtfm/fix-quickstart-fe131b" || g.pr["base"] != "main" || g.pr["maintainer_can_modify"] != true {
 		t.Errorf("pr = %v", g.pr)
 	}
 	if g.authSeen != "Bearer ghp_secret" {
@@ -204,7 +204,7 @@ func TestOpenWithPushAccess(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if g.forked || opened.Fork != "" || g.pr["head"] != "vanguard/fix-quickstart-fe131b" {
+	if g.forked || opened.Fork != "" || g.pr["head"] != "rtfm/fix-quickstart-fe131b" {
 		t.Errorf("should branch in the repo itself: forked=%v pr=%v", g.forked, g.pr)
 	}
 }

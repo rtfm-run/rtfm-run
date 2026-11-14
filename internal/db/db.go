@@ -1,4 +1,4 @@
-// Package db is vanguard's Postgres storage: migrations and queries.
+// Package db is rtfm's Postgres storage: migrations and queries.
 package db
 
 import (

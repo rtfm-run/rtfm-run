@@ -156,7 +156,7 @@ func (r *Run) Markdown() string {
 		verdict = "❌ broken (also needs " + strings.Join(r.MissingCredentials(), ", ") + ")"
 	}
 	pass, fail, unsup := r.Counts()
-	fmt.Fprintf(&b, "# vanguard.run · %s\n\n", r.Target)
+	fmt.Fprintf(&b, "# rtfm.run · %s\n\n", r.Target)
 	fmt.Fprintf(&b, "**Verdict:** %s · **Steps:** %d pass / %d fail / %d unsupported · **Time:** %s · **Model:** %s\n\n",
 		verdict, pass, fail, unsup, r.Duration().Round(time.Second), r.Model)
 	fmt.Fprintf(&b, "**Goal:** %s · **Docs:** `%s`\n\n", r.Goal, r.DocPath)

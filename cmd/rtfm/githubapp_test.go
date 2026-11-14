@@ -6,14 +6,14 @@ import (
 	"strings"
 	"testing"
 
-	"vanguard.run/internal/ghapp"
+	"rtfm.run/internal/ghapp"
 )
 
 func TestSaveAppConfig(t *testing.T) {
 	dir := t.TempDir()
 	envPath, pemPath := filepath.Join(dir, "service.env"), filepath.Join(dir, "github-app.pem")
-	t.Setenv("VANGUARD_SECRET_KEY", "")
-	t.Setenv("VANGUARD_DATABASE_URL", "postgres://u:p@h/db")
+	t.Setenv("RTFM_SECRET_KEY", "")
+	t.Setenv("RTFM_DATABASE_URL", "postgres://u:p@h/db")
 	app := ghapp.Created{ID: 7, Slug: "vg", ClientID: "Iv23.x", ClientSecret: "cs", WebhookSecret: "ws", PEM: "PEMDATA"}
 	if err := saveAppConfig(app, "https://x.example.com", envPath, pemPath); err != nil {
 		t.Fatal(err)
@@ -28,17 +28,17 @@ func TestSaveAppConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 	if vals["GITHUB_APP_ID"] != "7" || vals["GITHUB_APP_WEBHOOK_SECRET"] != "ws" || vals["GITHUB_APP_PRIVATE_KEY_FILE"] != pemPath ||
-		vals["VANGUARD_DATABASE_URL"] != "postgres://u:p@h/db" || len(vals["VANGUARD_SECRET_KEY"]) != 44 {
+		vals["RTFM_DATABASE_URL"] != "postgres://u:p@h/db" || len(vals["RTFM_SECRET_KEY"]) != 44 {
 		t.Errorf("vals = %v", vals)
 	}
 	// Re-registering keeps the secret key, so stored credentials stay readable.
-	key := vals["VANGUARD_SECRET_KEY"]
+	key := vals["RTFM_SECRET_KEY"]
 	app.ID = 8
 	if err := saveAppConfig(app, "https://x.example.com", envPath, pemPath); err != nil {
 		t.Fatal(err)
 	}
 	vals, _ = readEnvFile(envPath)
-	if vals["VANGUARD_SECRET_KEY"] != key || vals["GITHUB_APP_ID"] != "8" {
+	if vals["RTFM_SECRET_KEY"] != key || vals["GITHUB_APP_ID"] != "8" {
 		t.Errorf("after re-register: %v", vals)
 	}
 }

@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"vanguard.run/internal/creds"
-	"vanguard.run/internal/db"
-	"vanguard.run/internal/match"
-	"vanguard.run/internal/targets"
+	"rtfm.run/internal/creds"
+	"rtfm.run/internal/db"
+	"rtfm.run/internal/match"
+	"rtfm.run/internal/targets"
 )
 
 func (s *Server) listInstallations(w http.ResponseWriter, r *http.Request, u db.User) {

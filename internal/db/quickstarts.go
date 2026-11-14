@@ -7,7 +7,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// Quickstart is one doc in one repo that vanguard tests.
+// Quickstart is one doc in one repo that rtfm tests.
 type Quickstart struct {
 	ID           int64     `json:"id"`
 	RepoID       int64     `json:"repo_id"`

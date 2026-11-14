@@ -32,13 +32,13 @@ type Store struct {
 	mu   sync.Mutex
 }
 
-// DefaultStore returns the store at <user config dir>/vanguard/credentials.json.
+// DefaultStore returns the store at <user config dir>/rtfm/credentials.json.
 func DefaultStore() (*Store, error) {
 	dir, err := os.UserConfigDir()
 	if err != nil {
 		return nil, err
 	}
-	return &Store{Path: filepath.Join(dir, "vanguard", "credentials.json")}, nil
+	return &Store{Path: filepath.Join(dir, "rtfm", "credentials.json")}, nil
 }
 
 func (s *Store) load() (map[string]string, error) {

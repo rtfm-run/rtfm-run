@@ -22,7 +22,7 @@ import (
 	"strings"
 	"time"
 
-	"vanguard.run/internal/ghapp"
+	"rtfm.run/internal/ghapp"
 )
 
 func cmdGitHubApp(ctx context.Context, args []string) error {
@@ -35,20 +35,20 @@ func cmdGitHubApp(ctx context.Context, args []string) error {
 		}
 	}
 	return errors.New(`usage:
-  vanguard github-app create [--base-url URL] [--webhook-url URL] [--org ORG] [--name NAME]
-  vanguard github-app webhook-url <URL> [--env-file FILE]   repoint webhooks (e.g. after a tunnel restart)`)
+  rtfm github-app create [--base-url URL] [--webhook-url URL] [--org ORG] [--name NAME]
+  rtfm github-app webhook-url <URL> [--env-file FILE]   repoint webhooks (e.g. after a tunnel restart)`)
 }
 
 // cmdGitHubAppWebhookURL updates where GitHub sends the App's webhooks.
 func cmdGitHubAppWebhookURL(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("github-app webhook-url", flag.ContinueOnError)
-	envFile := fs.String("env-file", orDefault(env("VANGUARD_ENV_FILE"), filepath.Join(defaultConfigDir(), "service.env")), "service configuration")
+	envFile := fs.String("env-file", orDefault(env("RTFM_ENV_FILE"), filepath.Join(defaultConfigDir(), "service.env")), "service configuration")
 	pos, err := parseInterspersed(fs, args)
 	if err != nil {
 		return err
 	}
 	if len(pos) != 1 {
-		return errors.New("usage: vanguard github-app webhook-url <URL>  (a tunnel root like https://x.trycloudflare.com gets /webhooks/github appended)")
+		return errors.New("usage: rtfm github-app webhook-url <URL>  (a tunnel root like https://x.trycloudflare.com gets /webhooks/github appended)")
 	}
 	hook, err := webhookURL(pos[0])
 	if err != nil {
@@ -82,21 +82,21 @@ func webhookURL(u string) (string, error) {
 
 func defaultConfigDir() string {
 	if d, err := os.UserConfigDir(); err == nil {
-		return filepath.Join(d, "vanguard")
+		return filepath.Join(d, "rtfm")
 	}
 	return "."
 }
 
-// cmdGitHubAppCreate registers vanguard's GitHub App with the manifest flow:
+// cmdGitHubAppCreate registers rtfm's GitHub App with the manifest flow:
 // a local page posts the manifest to GitHub, the user confirms there, and
 // GitHub redirects back here with a one-time code that we exchange for the
 // App's credentials. Secrets go straight to 0600 files and are never printed.
 func cmdGitHubAppCreate(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("github-app create", flag.ContinueOnError)
-	baseURL := fs.String("base-url", orDefault(env("VANGUARD_BASE_URL"), "http://localhost:8080"), "URL of 'vanguard serve' as your browser sees it (sign-in callbacks)")
+	baseURL := fs.String("base-url", orDefault(env("RTFM_BASE_URL"), "http://localhost:8080"), "URL of 'rtfm serve' as your browser sees it (sign-in callbacks)")
 	hookFlag := fs.String("webhook-url", "", "public URL GitHub sends webhooks to, e.g. a tunnel (default <base-url>/webhooks/github)")
 	org := fs.String("org", "", "register the App under this organization instead of your account")
-	name := fs.String("name", "", "App name (globally unique on GitHub; default vanguard-dev-XXXX)")
+	name := fs.String("name", "", "App name (globally unique on GitHub; default rtfm-dev-XXXX)")
 	public := fs.Bool("public", false, "let any account install the App (default: only the owner)")
 	dir := fs.String("dir", defaultConfigDir(), "where to write github-app.pem and service.env")
 	force := fs.Bool("force", false, "overwrite an existing service.env")
@@ -107,7 +107,7 @@ func cmdGitHubAppCreate(ctx context.Context, args []string) error {
 	base := strings.TrimRight(*baseURL, "/")
 	u, err := url.Parse(base)
 	if base == "" || err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" {
-		return errors.New("--base-url must be the http(s) URL where 'vanguard serve' will be reachable")
+		return errors.New("--base-url must be the http(s) URL where 'rtfm serve' will be reachable")
 	}
 	hook := base + "/webhooks/github"
 	if *hookFlag != "" {
@@ -118,7 +118,7 @@ func cmdGitHubAppCreate(ctx context.Context, args []string) error {
 	if hu, _ := url.Parse(hook); isLocalHost(hu.Hostname()) {
 		fmt.Fprintf(os.Stderr, "warning: %s is not reachable from GitHub, so webhooks (push triggers, installs) won't arrive.\n"+
 			"         Start a tunnel (e.g. 'cloudflared tunnel --url http://localhost:8080') and pass --webhook-url,\n"+
-			"         or later: vanguard github-app webhook-url <tunnel-url>\n", hook)
+			"         or later: rtfm github-app webhook-url <tunnel-url>\n", hook)
 	}
 	envPath := filepath.Join(*dir, "service.env")
 	pemPath := filepath.Join(*dir, "github-app.pem")
@@ -126,7 +126,7 @@ func cmdGitHubAppCreate(ctx context.Context, args []string) error {
 		return fmt.Errorf("%s already exists (an App is already configured); pass --force to replace it", envPath)
 	}
 	if *name == "" {
-		*name = "vanguard-dev-" + randHex(2)
+		*name = "rtfm-dev-" + randHex(2)
 	}
 	state := randHex(16)
 
@@ -160,7 +160,7 @@ func cmdGitHubAppCreate(ctx context.Context, args []string) error {
 	mux.HandleFunc("GET /done", func(w http.ResponseWriter, r *http.Request) {
 		q := r.URL.Query()
 		if subtle.ConstantTimeCompare([]byte(q.Get("state")), []byte(state)) != 1 {
-			http.Error(w, "state mismatch; start again with 'vanguard github-app create'", http.StatusBadRequest)
+			http.Error(w, "state mismatch; start again with 'rtfm github-app create'", http.StatusBadRequest)
 			return
 		}
 		app, err := ghapp.ConvertManifest(r.Context(), "", nil, q.Get("code"))
@@ -201,12 +201,12 @@ func cmdGitHubAppCreate(ctx context.Context, args []string) error {
 	fmt.Fprintf(os.Stderr, "\nCreated %s (id %d), owned by %s.\n", r.app.HTMLURL, r.app.ID, r.app.Owner.Login)
 	fmt.Fprintf(os.Stderr, "  private key  %s\n  config       %s\n", pemPath, envPath)
 	fmt.Fprintf(os.Stderr, "\nNext:\n  1. Install it on repos: https://github.com/apps/%s/installations/new\n", r.app.Slug)
-	fmt.Fprintf(os.Stderr, "  2. vanguard serve --env-file %s\n", envPath)
+	fmt.Fprintf(os.Stderr, "  2. rtfm serve --env-file %s\n", envPath)
 	return nil
 }
 
 // saveAppConfig writes the private key and a service.env with everything
-// 'vanguard serve' needs (both 0600). An existing VANGUARD_SECRET_KEY is
+// 'rtfm serve' needs (both 0600). An existing RTFM_SECRET_KEY is
 // kept, so credentials already encrypted with it stay readable.
 func saveAppConfig(app ghapp.Created, base, envPath, pemPath string) error {
 	if err := os.MkdirAll(filepath.Dir(envPath), 0o700); err != nil {
@@ -216,7 +216,7 @@ func saveAppConfig(app ghapp.Created, base, envPath, pemPath string) error {
 		return err
 	}
 	vals := map[string]string{
-		"VANGUARD_BASE_URL":           base,
+		"RTFM_BASE_URL":           base,
 		"GITHUB_APP_ID":               fmt.Sprint(app.ID),
 		"GITHUB_APP_SLUG":             app.Slug,
 		"GITHUB_APP_CLIENT_ID":        app.ClientID,
@@ -225,7 +225,7 @@ func saveAppConfig(app ghapp.Created, base, envPath, pemPath string) error {
 		"GITHUB_APP_PRIVATE_KEY_FILE": pemPath,
 	}
 	old, _ := readEnvFile(envPath)
-	for _, k := range []string{"VANGUARD_SECRET_KEY", "VANGUARD_DATABASE_URL", "VANGUARD_DASHBOARD_URL"} {
+	for _, k := range []string{"RTFM_SECRET_KEY", "RTFM_DATABASE_URL", "RTFM_DASHBOARD_URL"} {
 		switch {
 		case old[k] != "":
 			vals[k] = old[k]
@@ -233,12 +233,12 @@ func saveAppConfig(app ghapp.Created, base, envPath, pemPath string) error {
 			vals[k] = env(k)
 		}
 	}
-	if vals["VANGUARD_SECRET_KEY"] == "" {
+	if vals["RTFM_SECRET_KEY"] == "" {
 		key := make([]byte, 32)
 		if _, err := rand.Read(key); err != nil {
 			return err
 		}
-		vals["VANGUARD_SECRET_KEY"] = base64.StdEncoding.EncodeToString(key)
+		vals["RTFM_SECRET_KEY"] = base64.StdEncoding.EncodeToString(key)
 	}
 	if vals["GITHUB_APP_WEBHOOK_SECRET"] == "" {
 		return errors.New("GitHub returned no webhook secret; set one in the App settings and add GITHUB_APP_WEBHOOK_SECRET to " + envPath)
@@ -249,12 +249,12 @@ func saveAppConfig(app ghapp.Created, base, envPath, pemPath string) error {
 	}
 	sort.Strings(keys)
 	var b strings.Builder
-	b.WriteString("# vanguard service configuration, written by 'vanguard github-app create'.\n# Contains secrets: keep it private.\n")
+	b.WriteString("# rtfm service configuration, written by 'rtfm github-app create'.\n# Contains secrets: keep it private.\n")
 	for _, k := range keys {
 		fmt.Fprintf(&b, "%s=%s\n", k, vals[k])
 	}
-	if vals["VANGUARD_DATABASE_URL"] == "" {
-		b.WriteString("# VANGUARD_DATABASE_URL=postgres://user:pass@host:5432/vanguard\n")
+	if vals["RTFM_DATABASE_URL"] == "" {
+		b.WriteString("# RTFM_DATABASE_URL=postgres://user:pass@host:5432/rtfm\n")
 	}
 	return writePrivate(envPath, []byte(b.String()))
 }
@@ -357,9 +357,9 @@ var formPage = template.Must(template.New("form").Parse(`<!doctype html>
 </body>`))
 
 var donePage = template.Must(template.New("done").Parse(`<!doctype html>
-<meta charset="utf-8"><title>vanguard GitHub App</title>
+<meta charset="utf-8"><title>rtfm GitHub App</title>
 <body style="font-family:system-ui;max-width:40rem;margin:4rem auto;padding:0 1rem">
-{{if .Err}}<h1>Something went wrong</h1><p>{{.Err}}</p><p>Check the terminal, then run <code>vanguard github-app create</code> again.</p>
+{{if .Err}}<h1>Something went wrong</h1><p>{{.Err}}</p><p>Check the terminal, then run <code>rtfm github-app create</code> again.</p>
 {{else}}<h1>Created {{.App.Name}}</h1>
 <p>Credentials are saved. You can close this tab.</p>
 <p>Next, <a href="{{.Install}}">install it on the repos</a> whose quickstarts you want tested.</p>{{end}}

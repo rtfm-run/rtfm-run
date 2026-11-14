@@ -1,4 +1,4 @@
-// Package guidelines makes vanguard's pull requests follow the target
+// Package guidelines makes rtfm's pull requests follow the target
 // repository's contribution rules: PR templates, CONTRIBUTING, commit
 // conventions, DCO/CLA requirements and AI-contribution policies.
 //
@@ -18,10 +18,10 @@ import (
 	"regexp"
 	"strings"
 
-	"vanguard.run/internal/github"
-	"vanguard.run/internal/persona"
-	"vanguard.run/internal/prs"
-	"vanguard.run/internal/runner"
+	"rtfm.run/internal/github"
+	"rtfm.run/internal/persona"
+	"rtfm.run/internal/prs"
+	"rtfm.run/internal/runner"
 )
 
 // File is one guideline document.
@@ -206,7 +206,7 @@ func Interpret(ctx context.Context, r runner.Runner, repo string, f *Found, p *p
 	if err != nil {
 		return nil, err
 	}
-	dir, err := os.MkdirTemp("", "vanguard-guidelines-")
+	dir, err := os.MkdirTemp("", "rtfm-guidelines-")
 	if err != nil {
 		return nil, err
 	}
@@ -254,7 +254,7 @@ func (o *Outcome) Ready() bool { return len(o.Blockers) == 0 }
 var branchRe = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._/-]{0,99}$`)
 
 // disclosure is kept in every body, whatever the template.
-const disclosure = "_This change was found and verified by vanguard.run, which had an AI agent follow the quickstart on a fresh machine._"
+const disclosure = "_This change was found and verified by rtfm.run, which had an AI agent follow the quickstart on a fresh machine._"
 
 // Apply mutates p according to the decision and the human's options. It
 // never ticks a personal-attestation box or adds a sign-off on its own.
@@ -269,7 +269,7 @@ func Apply(p *prs.Proposal, d *Decision, f *Found, opt Options) Outcome {
 
 	switch d.AIPolicy.Status {
 	case "forbidden":
-		o.Blockers = append(o.Blockers, Blocker{Hard: true, Message: "The project does not accept AI-generated contributions" + quoted(d.AIPolicy.Quote) + ". vanguard will not open this pull request; the patch and text are still saved locally."})
+		o.Blockers = append(o.Blockers, Blocker{Hard: true, Message: "The project does not accept AI-generated contributions" + quoted(d.AIPolicy.Quote) + ". rtfm will not open this pull request; the patch and text are still saved locally."})
 	case "restricted":
 		o.Warnings = append(o.Warnings, "AI-assisted contributions are accepted with conditions: "+d.AIPolicy.Requirements+quoted(d.AIPolicy.Quote)+". Check the PR meets them.")
 	}
@@ -283,7 +283,7 @@ func Apply(p *prs.Proposal, d *Decision, f *Found, opt Options) Outcome {
 			o.Applied = append(o.Applied, "Filled in the pull request template "+d.TemplateUsed)
 		}
 	}
-	if !strings.Contains(p.Body, "vanguard.run") {
+	if !strings.Contains(p.Body, "rtfm.run") {
 		p.Body = strings.TrimRight(p.Body, "\n") + "\n\n" + disclosure + "\n"
 	}
 	if s := strings.TrimSpace(d.CommitSubject); s != "" {

@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"strings"
 
-	"vanguard.run/internal/db"
-	"vanguard.run/internal/ghapp"
-	"vanguard.run/internal/match"
+	"rtfm.run/internal/db"
+	"rtfm.run/internal/ghapp"
+	"rtfm.run/internal/match"
 )
 
 // maxWebhookBody is GitHub's maximum payload size.

@@ -4,7 +4,7 @@ package runner
 import (
 	"context"
 
-	"vanguard.run/internal/stream"
+	"rtfm.run/internal/stream"
 )
 
 // Request is one agent run in a prepared workspace.
@@ -27,7 +27,7 @@ type Request struct {
 	// ExecLog is where the devbox MCP server logs each command (JSONL).
 	ExecLog string
 	// BrokerSocket, if set, enables the request_credential tool: the MCP
-	// server asks vanguard's credential broker on this unix socket.
+	// server asks rtfm's credential broker on this unix socket.
 	BrokerSocket string
 	// NoTools denies every agent tool: for pure text tasks (e.g. applying
 	// contribution guidelines) that must not touch anything.

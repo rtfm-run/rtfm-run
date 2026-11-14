@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"strings"
 
-	"vanguard.run/internal/report"
+	"rtfm.run/internal/report"
 )
 
 type rule struct {

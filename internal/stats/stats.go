@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"vanguard.run/internal/report"
+	"rtfm.run/internal/report"
 )
 
 // Summary is the result of a sweep.
@@ -103,7 +103,7 @@ func pct(a, b int) string {
 // Markdown renders the sweep summary and a per-target table.
 func Markdown(s Summary, runs []*report.Run) string {
 	var b strings.Builder
-	b.WriteString("# vanguard.run sweep\n\n")
+	b.WriteString("# rtfm.run sweep\n\n")
 	fmt.Fprintf(&b, "**%d targets** · ✅ %d work · ❌ %d broken (%s) · 🔑 %d blocked on credentials · ⚠️ %d run errors · **%d with issues a newcomer would hit (%s)**\n\n",
 		s.Targets, s.Works, s.Broken, pct(s.Broken, s.Targets), s.Blocked, s.Errors, s.Issues, pct(s.Issues, s.Targets))
 	fmt.Fprintf(&b, "Steps: %d failed, %d unsupported · Median time to give up: %s · Median run: %s · Tokens: %d\n\n",

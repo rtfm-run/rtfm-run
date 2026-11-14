@@ -19,29 +19,29 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"vanguard.run/internal/db"
-	"vanguard.run/internal/devbox"
-	"vanguard.run/internal/ghapp"
-	"vanguard.run/internal/runner"
-	"vanguard.run/internal/secretbox"
+	"rtfm.run/internal/db"
+	"rtfm.run/internal/devbox"
+	"rtfm.run/internal/ghapp"
+	"rtfm.run/internal/runner"
+	"rtfm.run/internal/secretbox"
 )
 
 // TestProcessRealRun runs a real quickstart through the worker: real
 // Postgres, real pipeline, real devbox. The GitHub App is faked by an
-// endpoint that hands out VANGUARD_TEST_GITHUB_TOKEN as the installation
-// token. Set VANGUARD_TEST_REPO (owner/name) to the repo to test.
+// endpoint that hands out RTFM_TEST_GITHUB_TOKEN as the installation
+// token. Set RTFM_TEST_REPO (owner/name) to the repo to test.
 func TestProcessRealRun(t *testing.T) {
-	dbURL, tok, repoName := os.Getenv("VANGUARD_TEST_DATABASE_URL"), os.Getenv("VANGUARD_TEST_GITHUB_TOKEN"), os.Getenv("VANGUARD_TEST_REPO")
+	dbURL, tok, repoName := os.Getenv("RTFM_TEST_DATABASE_URL"), os.Getenv("RTFM_TEST_GITHUB_TOKEN"), os.Getenv("RTFM_TEST_REPO")
 	if dbURL == "" || tok == "" || repoName == "" || testing.Short() {
-		t.Skip("set VANGUARD_TEST_DATABASE_URL, VANGUARD_TEST_GITHUB_TOKEN and VANGUARD_TEST_REPO")
+		t.Skip("set RTFM_TEST_DATABASE_URL, RTFM_TEST_GITHUB_TOKEN and RTFM_TEST_REPO")
 	}
 	ctx := context.Background()
 	// Safety nets: never more than 2 boxes, and the MCP server must be a
-	// real vanguard binary (a test binary there re-runs this test).
-	t.Setenv("VANGUARD_MAX_BOXES", "2")
-	bin := filepath.Join(t.TempDir(), "vanguard")
-	if out, err := exec.Command("go", "build", "-o", bin, "vanguard.run/cmd/vanguard").CombinedOutput(); err != nil {
-		t.Fatalf("build vanguard: %v: %s", err, out)
+	// real rtfm binary (a test binary there re-runs this test).
+	t.Setenv("RTFM_MAX_BOXES", "2")
+	bin := filepath.Join(t.TempDir(), "rtfm")
+	if out, err := exec.Command("go", "build", "-o", bin, "rtfm.run/cmd/rtfm").CombinedOutput(); err != nil {
+		t.Fatalf("build rtfm: %v: %s", err, out)
 	}
 	schema := fmt.Sprintf("test_%d", mrand.Int64N(1<<40))
 	conn, err := pgx.Connect(ctx, dbURL)

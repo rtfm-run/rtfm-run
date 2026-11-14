@@ -1,4 +1,4 @@
-// Package server is vanguard's HTTP API for the dashboard, plus the GitHub
+// Package server is rtfm's HTTP API for the dashboard, plus the GitHub
 // App sign-in flow and webhook endpoint.
 package server
 
@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"vanguard.run/internal/db"
-	"vanguard.run/internal/ghapp"
-	"vanguard.run/internal/secretbox"
+	"rtfm.run/internal/db"
+	"rtfm.run/internal/ghapp"
+	"rtfm.run/internal/secretbox"
 )
 
 // Server holds dependencies.
@@ -22,14 +22,14 @@ type Server struct {
 	DB           *db.DB
 	App          *ghapp.App
 	Secrets      *secretbox.Box
-	BaseURL      string // public URL of this API, e.g. https://api.vanguard.run
+	BaseURL      string // public URL of this API, e.g. https://api.rtfm.run
 	DashboardURL string // where to send users after sign-in; also the allowed CORS origin
 	Log          *slog.Logger
 	// SessionTTL defaults to 30 days.
 	SessionTTL time.Duration
 }
 
-const sessionCookie = "vanguard_session"
+const sessionCookie = "rtfm_session"
 
 // Handler returns the HTTP handler with all routes.
 func (s *Server) Handler() http.Handler {
@@ -42,6 +42,15 @@ func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, map[string]string{"status": "ok"}) })
 
+	// The API has no pages of its own: send people who land on it (e.g. from
+	// the App's homepage link) to the dashboard.
+	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
+		if s.DashboardURL == "" {
+			http.NotFound(w, r)
+			return
+		}
+		http.Redirect(w, r, s.DashboardURL, http.StatusFound)
+	})
 	mux.HandleFunc("GET /auth/github/login", s.login)
 	mux.HandleFunc("GET /auth/github/callback", s.callback)
 	mux.HandleFunc("POST /auth/logout", s.logout)

@@ -39,23 +39,11 @@ export default function Home() {
   return (
     <main className="memo">
       <header className="rfc-head">
-        <div>
-          Docs Verification Working Group
-          <br />
-          Request for Comments: 127
-          <br />
-          Obsoletes: works-on-my-machine
-          <br />
-          Category: Standards Track
-        </div>
+        <div>vanguard.run</div>
         <div className="r">
-          vanguard.run
-          <br />
           <a className="hl" href={GITHUB}>
             github.com/vanguard-run
           </a>
-          <br />
-          November 2026
         </div>
       </header>
 

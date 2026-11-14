@@ -75,16 +75,6 @@ button:focus-visible {
   text-align: right;
 }
 
-@media (max-width: 620px) {
-  .rfc-head {
-    grid-template-columns: 1fr;
-  }
-  .rfc-head .r {
-    text-align: left;
-    margin-top: 1.55em;
-  }
-}
-
 h1 {
   font-size: clamp(31px, 6vw, 3.9em);
   line-height: 1.04;

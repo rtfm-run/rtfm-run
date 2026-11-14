@@ -3,3 +3,4 @@ bin
 runs
 service-runs
 *.test
+web

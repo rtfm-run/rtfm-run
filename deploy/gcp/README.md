@@ -2,7 +2,7 @@
 
 | Piece | Runs on | Address |
 |---|---|---|
-| Dashboard (`front` repo) | Cloud Run `rtfm-front` | https://rtfm.run |
+| Dashboard (`web/`) | Cloud Run `rtfm-front` | https://rtfm.run |
 | API (`rtfm serve --workers 0`) | Cloud Run `rtfm-api` | https://api.rtfm.run |
 | Workers (`rtfm worker`) | Compute Engine VM with nested virtualization (Firecracker needs KVM) | none |
 | Postgres | Cloud SQL (Cloud Run uses its socket; the VM uses the Auth Proxy) | none |

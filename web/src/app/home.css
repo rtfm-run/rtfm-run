@@ -1,0 +1,121 @@
+/* The landing page. Builds on globals.css (paper, ink, mono). */
+
+.home .lead {
+  margin: 1.2em 0 0;
+  max-width: 62ch;
+  font-size: 1.1em;
+}
+
+.home .cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.2em 2.5ch;
+  margin: 2em 0 0;
+}
+
+.home .button {
+  display: inline-block;
+  padding: 0.7em 1.4em;
+  background: var(--ink);
+  color: var(--paper);
+  font-weight: 700;
+  text-decoration: none;
+  border: 2px solid var(--ink);
+}
+
+.home .button:hover {
+  background: var(--hl);
+  color: var(--ink);
+}
+
+.home .quiet {
+  text-decoration: none;
+}
+
+.home h2 {
+  margin-top: 4em;
+  padding-bottom: 0.4em;
+  border-bottom: 1px solid var(--ink);
+}
+
+.home h3 {
+  margin: 0 0 0.3em;
+}
+
+.home p {
+  margin: 0;
+}
+
+.home .how {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 1.6em;
+}
+
+.home .how li {
+  display: grid;
+  grid-template-columns: 2.4em minmax(0, 1fr);
+  gap: 1.5ch;
+  align-items: start;
+}
+
+.home .how .n {
+  display: inline-grid;
+  place-items: center;
+  width: 1.9em;
+  height: 1.9em;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  font-weight: 700;
+}
+
+.home .features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 30ch), 1fr));
+  gap: 1.8em 3ch;
+}
+
+.home .feature {
+  border-left: 3px solid var(--hl);
+  padding-left: 1.5ch;
+}
+
+.home .closing {
+  margin-top: 1em;
+}
+
+.home .closing h2 {
+  border-bottom: 0;
+  font-size: 1.4em;
+  line-height: 1.25;
+}
+
+.home .foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5em 2ch;
+  margin-top: 5em;
+  padding-top: 1em;
+  border-top: 1px solid var(--ink);
+}
+
+.home .faint {
+  color: var(--faint);
+}
+
+/* Marker notes float into the right margin beside the steps (as on the
+   original page), but sit under the text inside the feature grid. */
+.home .how p {
+  position: relative;
+}
+
+.home .feature .note {
+  position: static;
+  width: auto;
+  margin: 0.3em 0 0;
+  font-size: 1.4em;
+}

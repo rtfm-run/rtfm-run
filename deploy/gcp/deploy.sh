@@ -3,7 +3,7 @@
 #   rtfm.run       → Cloud Run service rtfm-front (Next.js dashboard)
 #   api.rtfm.run   → Cloud Run service rtfm-api   (rtfm serve --workers 0)
 #   worker VM      → Compute Engine with nested virtualization (rtfm worker)
-#   Postgres       → Cloud SQL;  secrets → Secret Manager;  agents → Vertex AI
+#   Postgres       → Cloud SQL;  secrets → Secret Manager;  agents → agy on the worker
 #
 # Usage: deploy/gcp/deploy.sh <step> [...]
 # Steps, in order for a first deploy (each is safe to rerun):
@@ -42,7 +42,7 @@ AGY_BIN=${AGY_BIN:-$(command -v agy || true)}
 
 HERE=$(cd "$(dirname "$0")" && pwd)
 ROOT=$(cd "$HERE/../.." && pwd)
-FRONT=${FRONT:-$(cd "$ROOT/../front" && pwd)}
+FRONT=${FRONT:-$ROOT/web}
 IMAGES="$REGION-docker.pkg.dev/$PROJECT/$REPO"
 CONN="$PROJECT:$REGION:$SQL_INSTANCE"
 G="gcloud --project $PROJECT --quiet"

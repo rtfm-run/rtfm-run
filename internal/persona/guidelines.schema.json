@@ -1,0 +1,55 @@
+{
+  "type": "object",
+  "required": ["ai_policy", "issue_first", "dco_required", "cla_required", "target_branch", "title", "commit_subject", "commit_body", "branch_name", "body", "checkboxes", "other_requirements", "notes"],
+  "properties": {
+    "ai_policy": {
+      "type": "object",
+      "required": ["status", "quote", "requirements"],
+      "properties": {
+        "status": { "type": "string", "enum": ["allowed", "restricted", "forbidden", "not_mentioned"] },
+        "quote": { "type": "string" },
+        "requirements": { "type": "string" }
+      }
+    },
+    "issue_first": {
+      "type": "object",
+      "required": ["required", "quote"],
+      "properties": { "required": { "type": "boolean" }, "quote": { "type": "string" } }
+    },
+    "dco_required": { "type": "boolean" },
+    "cla_required": { "type": "boolean" },
+    "target_branch": { "type": "string" },
+    "title": { "type": "string" },
+    "commit_subject": { "type": "string" },
+    "commit_body": { "type": "string" },
+    "branch_name": { "type": "string" },
+    "template_used": { "type": "string" },
+    "body": { "type": "string" },
+    "checkboxes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["text", "checked", "needs_human", "reason"],
+        "properties": {
+          "text": { "type": "string" },
+          "checked": { "type": "boolean" },
+          "needs_human": { "type": "boolean" },
+          "reason": { "type": "string" }
+        }
+      }
+    },
+    "other_requirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["requirement", "satisfied", "how"],
+        "properties": {
+          "requirement": { "type": "string" },
+          "satisfied": { "type": "boolean" },
+          "how": { "type": "string" }
+        }
+      }
+    },
+    "notes": { "type": "array", "items": { "type": "string" } }
+  }
+}

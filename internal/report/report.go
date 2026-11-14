@@ -76,6 +76,7 @@ type Run struct {
 	ID             string    `json:"id"`
 	Target         string    `json:"target"`
 	Repo           string    `json:"repo"`
+	BaseCommit     string    `json:"base_commit,omitempty"` // the commit that was tested
 	DocPath        string    `json:"doc_path"`
 	Goal           string    `json:"goal"`
 	Runner         string    `json:"runner"`
@@ -323,6 +324,9 @@ type FixResult struct {
 	ConversationID string   `json:"fixer_conversation_id,omitempty"`
 	Usage          Usage    `json:"usage"` // fixer + verify tokens
 	Error          string   `json:"error,omitempty"`
+
+	// PRURL is set once the fix has been opened as a pull request.
+	PRURL string `json:"pr_url,omitempty"`
 }
 
 // Markdown renders the fix section of a run report.

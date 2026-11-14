@@ -90,3 +90,41 @@ func RenderFixer(in FixerInput) (string, error) {
 
 // FixerSchema is the JSON schema for the fixer's final report.
 func FixerSchema() string { return fixerSchema }
+
+//go:embed guidelines.md
+var guidelinesTmplText string
+
+//go:embed guidelines.schema.json
+var guidelinesSchema string
+
+var guidelinesTmpl = template.Must(template.New("guidelines").Parse(guidelinesTmplText))
+
+// GuidelineFile is one guideline document from the target repository.
+type GuidelineFile struct {
+	Path    string
+	Content string
+}
+
+// GuidelinesInput parameterizes the guidelines prompt.
+type GuidelinesInput struct {
+	Repo, DocPath                      string
+	Title, CommitMessage, Branch, Body string
+	Patch                              string
+	Files                              []GuidelineFile
+}
+
+// RenderGuidelines returns the prompt that applies a repository's
+// contribution guidelines to a draft pull request.
+func RenderGuidelines(in GuidelinesInput) (string, error) {
+	if len(in.Files) == 0 {
+		return "", fmt.Errorf("persona: no guideline files")
+	}
+	var b strings.Builder
+	if err := guidelinesTmpl.Execute(&b, in); err != nil {
+		return "", err
+	}
+	return b.String(), nil
+}
+
+// GuidelinesSchema is the JSON schema for the guidelines decision.
+func GuidelinesSchema() string { return guidelinesSchema }

@@ -16,6 +16,8 @@ func TestClassify(t *testing.T) {
 	}{
 		{"bash missing tool", "bash: line 1: gemini: command not found", 127, report.KindMissingPrereq, "`gemini`"},
 		{"sh missing tool", "sh: 1: yarn: not found", 127, report.KindMissingPrereq, "`yarn`"},
+		// Regression (docker/awesome-compose): not a missing command.
+		{"compose no config", "no configuration file provided: not found", 1, report.KindUnknown, "exit 1"},
 		{"argparse flag", "usage: hello [-h] --name NAME\nhello: error: unrecognized arguments: --user newhire", 2, report.KindStaleCommand, "`--user`"},
 		{"argparse required", "hello: error: the following arguments are required: --name", 2, report.KindStaleCommand, "--name"},
 		{"cobra flag", "Error: unknown flag: --verbose", 1, report.KindStaleCommand, "verbose"},

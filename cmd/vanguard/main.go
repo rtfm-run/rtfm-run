@@ -3,6 +3,7 @@
 //
 //	vanguard run <repo-url|dir> --doc README.md --goal "…" [--success "cmd"]
 //	vanguard sweep targets.json [--parallel N]
+//	vanguard pr <target|run.json> [--open]
 //	vanguard creds set|list|rm [NAME]
 //	vanguard devbox build
 //	vanguard version
@@ -15,6 +16,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"strings"
@@ -23,8 +25,12 @@ import (
 
 	"vanguard.run/internal/creds"
 	"vanguard.run/internal/devbox"
+	"vanguard.run/internal/diagnose"
+	"vanguard.run/internal/github"
+	"vanguard.run/internal/guidelines"
 	"vanguard.run/internal/mcpexec"
 	"vanguard.run/internal/pipeline"
+	"vanguard.run/internal/prs"
 	"vanguard.run/internal/report"
 	"vanguard.run/internal/runner"
 	"vanguard.run/internal/stats"
@@ -47,6 +53,8 @@ func main() {
 		err = cmdRun(ctx, os.Args[2:])
 	case "sweep":
 		err = cmdSweep(ctx, os.Args[2:])
+	case "pr":
+		err = cmdPR(ctx, os.Args[2:])
 	case "creds":
 		err = cmdCreds(os.Args[2:])
 	case "devbox":
@@ -74,6 +82,7 @@ func usage() {
 Usage:
   vanguard run <repo-url|dir> [flags]   run the newhire agent on one quickstart
   vanguard sweep <targets.json> [flags]  run many quickstarts and summarize
+  vanguard pr <target|run.json> [flags]  preview (or --open) a pull request for a verified fix
   vanguard creds set|list|rm [NAME]     manage credentials quickstarts may need
   vanguard devbox build                 build the blank-slate devbox image
   vanguard version
@@ -100,7 +109,7 @@ func (a *agentFlags) register(fs *flag.FlagSet, fixByDefault bool) {
 	fs.StringVar(&a.workRoot, "work", filepath.Join(os.TempDir(), "vanguard"), "root for throwaway workspaces")
 	fs.StringVar(&a.out, "out", "runs", "directory for run artifacts")
 	fs.BoolVar(&a.keep, "keep", false, "keep the workspace and container after the run")
-	fs.StringVar(&a.backend, "backend", "docker", "devbox backend: docker (container) or firecracker (microVM with systemd and Docker inside)")
+	fs.StringVar(&a.backend, "backend", "auto", "devbox backend: firecracker (microVM with systemd and Docker inside), docker (container), or auto (firecracker when available, else docker)")
 	fs.StringVar(&a.image, "image", "", "devbox image (default: the backend's built image)")
 	fs.StringVar(&a.docker, "docker", "docker", "docker binary")
 	fs.StringVar(&a.memory, "memory", "4g", "devbox memory limit")
@@ -119,11 +128,12 @@ func (a *agentFlags) config(ctx context.Context) (pipeline.Config, error) {
 		Fix:      a.fix,
 		Verify:   a.fix && a.verify,
 	}
+	cfg.GitHubToken, _ = githubToken() // optional: enables private GitHub repos
 	if a.unsafeHost {
 		fmt.Fprintln(os.Stderr, "⚠ --unsafe-host: quickstart commands run on this machine, not in a container")
 		return cfg, nil
 	}
-	backend, err := a.newBackend()
+	backend, err := a.newBackend(ctx)
 	if err != nil {
 		return cfg, err
 	}
@@ -217,23 +227,35 @@ func parseInterspersed(fs *flag.FlagSet, args []string) ([]string, error) {
 	}
 }
 
-func (a *agentFlags) newBackend() (devbox.Backend, error) {
+func (a *agentFlags) newBackend(ctx context.Context) (devbox.Backend, error) {
+	if a.backend == "auto" {
+		a.backend = "docker"
+		fc, err := a.firecracker()
+		if err == nil && fc.Ready(ctx) == nil {
+			return fc, nil
+		}
+		fmt.Fprintln(os.Stderr, "ℹ microVM backend unavailable (needs /dev/kvm and 'vanguard devbox build --backend firecracker'); using docker containers")
+	}
 	switch a.backend {
 	case "docker":
 		return devbox.Docker{Image: a.image, Bin: a.docker, Memory: a.memory, CPUs: a.cpus, PidsLimit: 1024}, nil
 	case "firecracker":
-		mib, err := parseMiB(a.memory)
-		if err != nil {
-			return nil, err
-		}
-		vcpus := 2
-		if _, err := fmt.Sscan(a.cpus, &vcpus); err != nil || vcpus < 1 {
-			return nil, fmt.Errorf("--cpus must be a whole number of vCPUs for firecracker, got %q", a.cpus)
-		}
-		return devbox.Firecracker{Image: a.image, Bin: a.docker, VCPUs: vcpus, MemoryMiB: mib}, nil
+		return a.firecracker()
 	default:
-		return nil, fmt.Errorf("unknown --backend %q (docker or firecracker)", a.backend)
+		return nil, fmt.Errorf("unknown --backend %q (auto, firecracker or docker)", a.backend)
 	}
+}
+
+func (a *agentFlags) firecracker() (devbox.Firecracker, error) {
+	mib, err := parseMiB(a.memory)
+	if err != nil {
+		return devbox.Firecracker{}, err
+	}
+	vcpus := 2
+	if _, err := fmt.Sscan(a.cpus, &vcpus); err != nil || vcpus < 1 {
+		return devbox.Firecracker{}, fmt.Errorf("--cpus must be a whole number of vCPUs for firecracker, got %q", a.cpus)
+	}
+	return devbox.Firecracker{Image: a.image, Bin: a.docker, VCPUs: vcpus, MemoryMiB: mib}, nil
 }
 
 // parseMiB parses sizes like "4g", "4096m" or "4096" (MiB).
@@ -499,4 +521,233 @@ func cmdCreds(args []string) error {
 	default:
 		return usage
 	}
+}
+
+func cmdPR(ctx context.Context, args []string) error {
+	fs := flag.NewFlagSet("pr", flag.ContinueOnError)
+	out := fs.String("out", "runs", "directory with run artifacts")
+	open := fs.Bool("open", false, "actually fork/branch, commit and open the pull request (default: dry run)")
+	allowPartial := fs.Bool("allow-partial", false, "also propose fixes that only improved the quickstart")
+	signoff := fs.Bool("signoff", false, "add a DCO Signed-off-by line with your git identity (only if you agree to the project's DCO)")
+	claSigned := fs.Bool("cla-signed", false, "confirm you have signed the project's CLA")
+	attest := fs.Bool("attest", false, "confirm the template's personal checklist items are true for you, and tick them")
+	issue := fs.String("issue", "", "issue URL to reference (for projects that require an issue first)")
+	model := fs.String("model", "gemini-3.8-flash-medium", "agy model used to apply the contribution guidelines")
+	fs.Usage = func() {
+		fmt.Fprintln(fs.Output(), "Usage: vanguard pr <target-name|path/to/run.json> [--open] [--signoff] [--attest] [--cla-signed] [--issue URL] [--allow-partial]")
+		fs.PrintDefaults()
+	}
+	pos, err := parseInterspersed(fs, args)
+	if err != nil {
+		return err
+	}
+	if len(pos) != 1 {
+		fs.Usage()
+		return errors.New("pr: exactly one target name or run file is required")
+	}
+	runPath := pos[0]
+	if !strings.HasSuffix(runPath, ".json") {
+		runPath = filepath.Join(*out, targets.Sanitize(runPath), "latest.json")
+	}
+	run, err := loadRun(runPath)
+	if err != nil {
+		return err
+	}
+	if err := prs.Eligible(run, *allowPartial); err != nil {
+		return err
+	}
+	diagnose.Apply(run) // refresh with current rules (runs may predate fixes)
+	dir := filepath.Dir(runPath)
+	ext := filepath.Ext(run.DocPath)
+	fixed, err := os.ReadFile(filepath.Join(dir, run.ID+".fixed"+ext))
+	if err != nil {
+		return fmt.Errorf("fixed doc: %w", err)
+	}
+	original, err := originalDoc(ctx, dir, run, fixed)
+	if err != nil {
+		return err
+	}
+	var verify *report.Run
+	if run.Fix.VerifyRunID != "" {
+		verify, _ = loadRun(filepath.Join(dir, run.Fix.VerifyRunID+".json"))
+	}
+
+	p := prs.Build(run, verify, original, fixed)
+	repo, isGitHub := github.ParseRepo(run.Repo)
+	token, tokenErr := githubToken()
+	gh := &github.Client{Token: token} // a token is optional for reading public repos
+
+	// Follow the repository's contribution guidelines.
+	var outcome guidelines.Outcome
+	if isGitHub {
+		fmt.Fprintf(os.Stderr, "▶ reading %s's contribution guidelines\n", repo)
+		found, err := guidelines.Discover(ctx, gh, repo, "")
+		if err != nil {
+			return fmt.Errorf("read contribution guidelines: %w", err)
+		}
+		var decision *guidelines.Decision
+		if !found.Empty() {
+			// Reuse the dry run's decision so --open posts exactly what was reviewed.
+			cache, key := filepath.Join(dir, run.ID+".guidelines.json"), guidelines.Key(found, p, *model)
+			if decision = guidelines.Load(cache, key); decision != nil {
+				fmt.Fprintf(os.Stderr, "▶ using the reviewed interpretation of the guidelines (%s)\n", cache)
+			} else {
+				fmt.Fprintf(os.Stderr, "▶ applying them to the pull request\n")
+				if decision, err = guidelines.Interpret(ctx, runner.Agy{Model: *model}, repo.String(), found, p); err != nil {
+					return err
+				}
+				if err := guidelines.Save(cache, key, decision); err != nil {
+					return err
+				}
+				if *open {
+					return errors.New("the guidelines were interpreted just now, so this text hasn't been reviewed: check it above, then run the same command again to open it")
+				}
+			}
+		}
+		opt := guidelines.Options{Signoff: *signoff, CLASigned: *claSigned, Attest: *attest, Issue: *issue}
+		if *signoff {
+			opt.Identity = gitIdentity(ctx)
+		}
+		outcome = guidelines.Apply(p, decision, found, opt)
+	}
+
+	prFile := filepath.Join(dir, run.ID+".pr.md")
+	if err := os.WriteFile(prFile, []byte("# "+p.Title+"\n\n"+p.Body), 0o644); err != nil {
+		return err
+	}
+	base := p.BaseBranch
+	if base == "" {
+		base = "(default branch)"
+	}
+	fmt.Printf("Repository: %s\nTested commit: %s\nTarget: %s ← %s\nTitle: %s\n\nCommit message:\n%s\n%s\n```diff\n%s```\n\n",
+		run.Repo, orNone(run.BaseCommit), base, p.Branch, p.Title, indent(p.CommitMessage), p.Body, p.Patch)
+	if isGitHub {
+		fmt.Println(outcome.Render())
+	}
+	fmt.Fprintf(os.Stderr, "PR text: %s · patch: %s\n", prFile, filepath.Join(dir, run.ID+".patch"))
+
+	switch {
+	case !isGitHub:
+		fmt.Fprintln(os.Stderr, "Not a GitHub repository: apply the patch with `git apply` and use the PR text above.")
+		return nil
+	case !*open && !outcome.Ready():
+		fmt.Fprintln(os.Stderr, "Dry run: nothing was created. Resolve the items marked ✗ above (⛔ cannot be overridden) before --open.")
+		return nil
+	case !*open:
+		fmt.Fprintln(os.Stderr, "Dry run: nothing was created. Re-run with --open (and the same flags) to fork if needed, push a branch and open this pull request.")
+		return nil
+	case run.Fix.PRURL != "":
+		return fmt.Errorf("a pull request was already opened for this run: %s", run.Fix.PRURL)
+	case !outcome.Ready():
+		return errors.New("not opening: the repository's contribution guidelines have unresolved items (see above)")
+	case tokenErr != nil:
+		return tokenErr
+	}
+
+	if login, err := gh.User(ctx); err == nil {
+		fmt.Fprintf(os.Stderr, "▶ opening the pull request as %s\n", login)
+	}
+	opened, err := prs.Open(ctx, gh, p)
+	if err != nil {
+		return err
+	}
+	if opened.Fork != "" {
+		fmt.Fprintf(os.Stderr, "  via fork %s, branch %s\n", opened.Fork, opened.Branch)
+	}
+	fmt.Println("Opened:", opened.URL)
+	run.Fix.PRURL = opened.URL
+	return saveRun(run, runPath, filepath.Join(dir, run.ID+".json"))
+}
+
+func loadRun(path string) (*report.Run, error) {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	var r report.Run
+	if err := json.Unmarshal(b, &r); err != nil {
+		return nil, fmt.Errorf("%s: %w", path, err)
+	}
+	return &r, nil
+}
+
+// saveRun writes run to each distinct path.
+func saveRun(run *report.Run, paths ...string) error {
+	b, err := json.MarshalIndent(run, "", "  ")
+	if err != nil {
+		return err
+	}
+	seen := map[string]bool{}
+	for _, path := range paths {
+		abs, _ := filepath.Abs(path)
+		if seen[abs] {
+			continue
+		}
+		seen[abs] = true
+		if err := os.WriteFile(path, b, 0o644); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// originalDoc returns the doc as tested: saved by the run, or (for runs
+// made before originals were saved) reconstructed by reversing the patch.
+func originalDoc(ctx context.Context, dir string, run *report.Run, fixed []byte) ([]byte, error) {
+	ext := filepath.Ext(run.DocPath)
+	if b, err := os.ReadFile(filepath.Join(dir, run.ID+".orig"+ext)); err == nil {
+		return b, nil
+	}
+	tmp, err := os.MkdirTemp("", "vanguard-pr-")
+	if err != nil {
+		return nil, err
+	}
+	defer os.RemoveAll(tmp)
+	in, outPath := filepath.Join(tmp, "fixed"), filepath.Join(tmp, "orig")
+	if err := os.WriteFile(in, fixed, 0o644); err != nil {
+		return nil, err
+	}
+	cmd := exec.CommandContext(ctx, "patch", "-R", "-s", "-o", outPath, in, filepath.Join(dir, run.ID+".patch"))
+	if b, err := cmd.CombinedOutput(); err != nil {
+		return nil, fmt.Errorf("reconstruct the original doc: %v: %s", err, strings.TrimSpace(string(b)))
+	}
+	return os.ReadFile(outPath)
+}
+
+// githubToken finds a token: GITHUB_TOKEN, GH_TOKEN, or the credential store.
+func githubToken() (string, error) {
+	for _, k := range []string{"GITHUB_TOKEN", "GH_TOKEN"} {
+		if v := strings.TrimSpace(os.Getenv(k)); v != "" {
+			return v, nil
+		}
+	}
+	if store, err := creds.DefaultStore(); err == nil {
+		if v, ok, _ := store.Get("GITHUB_TOKEN"); ok {
+			return v, nil
+		}
+	}
+	return "", errors.New("no GitHub token: set GITHUB_TOKEN (or GH_TOKEN), or run 'vanguard creds set GITHUB_TOKEN'; it needs permission to fork, push and open pull requests (public_repo scope, or fine-grained contents + pull requests)")
+}
+
+// gitIdentity reads the user's git name and email for a DCO sign-off.
+func gitIdentity(ctx context.Context) *github.Identity {
+	get := func(k string) string {
+		out, err := exec.CommandContext(ctx, "git", "config", "--get", k).Output()
+		if err != nil {
+			return ""
+		}
+		return strings.TrimSpace(string(out))
+	}
+	return &github.Identity{Name: get("user.name"), Email: get("user.email")}
+}
+
+func indent(s string) string {
+	return "    " + strings.ReplaceAll(strings.TrimRight(s, "\n"), "\n", "\n    ") + "\n"
+}
+
+func orNone(s string) string {
+	if s == "" {
+		return "(unknown)"
+	}
+	return s
 }

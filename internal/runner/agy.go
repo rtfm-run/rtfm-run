@@ -86,7 +86,14 @@ func (a Agy) RunPrompt(ctx context.Context, req Request, prompt, schema string) 
 		"--sandbox",
 		"--mode", "accept-edits",
 	}
-	if devbox {
+	if req.NoTools {
+		b, err := json.Marshal(map[string]any{"permissions": map[string]any{"deny": []string{
+			"command(*)", "read_file(*)", "write_file(*)", "mcp(*)", "read_url(*)", "execute_url(*)"}}})
+		if err != nil {
+			return nil, err
+		}
+		args = append(args, "--settings", string(b))
+	} else if devbox {
 		if err := a.installMCP(req); err != nil {
 			return nil, err
 		}

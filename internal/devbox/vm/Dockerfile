@@ -28,6 +28,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy
 COPY --from=agent /out/vanguard-agent /usr/local/bin/vanguard-agent
 COPY vanguard-agent.service /etc/systemd/system/vanguard-agent.service
+COPY vanguard-init /sbin/vanguard-init
 # The image's ENV doesn't reach systemd services or login shells in a VM,
 # so carry it over via /etc/profile.d and /etc/environment.
 RUN printf '%s\n' \
@@ -42,7 +43,9 @@ RUN printf '%s\n' \
     # TODO: custom kernel with CONFIG_IP_NF_RAW, then drop this.
     && mkdir -p /etc/systemd/system/docker.service.d \
     && printf '[Service]\nEnvironment=DOCKER_INSECURE_NO_IPTABLES_RAW=1\n' > /etc/systemd/system/docker.service.d/vanguard.conf \
-    && printf '/dev/vda / ext4 defaults,noatime 0 1\n' > /etc/fstab \
+    # Root is an overlay set up by /sbin/vanguard-init, so no fstab entries.
+    && : > /etc/fstab \
+    && chmod 0755 /sbin/vanguard-init && mkdir -p /overlay /newroot \
     && systemctl enable vanguard-agent.service docker.service \
     && systemctl mask serial-getty@ttyS0.service getty@tty1.service \
         systemd-networkd.service systemd-resolved.service systemd-timesyncd.service \

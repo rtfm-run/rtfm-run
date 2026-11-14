@@ -29,6 +29,9 @@ type Request struct {
 	// BrokerSocket, if set, enables the request_credential tool: the MCP
 	// server asks vanguard's credential broker on this unix socket.
 	BrokerSocket string
+	// NoTools denies every agent tool: for pure text tasks (e.g. applying
+	// contribution guidelines) that must not touch anything.
+	NoTools bool
 }
 
 // Runner runs agents and returns the parsed stream.

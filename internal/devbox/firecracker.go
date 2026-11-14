@@ -21,7 +21,7 @@ import (
 	"time"
 )
 
-//go:embed vm/Dockerfile vm/entrypoint.sh vm/vanguard-agent.service vm/agent/main.go
+//go:embed vm/Dockerfile vm/entrypoint.sh vm/vanguard-agent.service vm/vanguard-init vm/agent/main.go
 var vmFiles embed.FS
 
 // DefaultVMImage is the microVM runner image built by Firecracker.Build.

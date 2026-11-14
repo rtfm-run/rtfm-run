@@ -54,6 +54,9 @@ type Config struct {
 	Fix bool
 	// Verify reruns the newhire against the fixed doc (requires Fix).
 	Verify bool
+	// GitHubToken authenticates clones of private GitHub repositories. It is
+	// used only on the host by git; it never enters the devbox.
+	GitHubToken string
 	// Broker answers the agent's credential requests (devbox mode only).
 	// Nil disables the request_credential tool.
 	Broker *creds.Broker
@@ -118,7 +121,7 @@ func (e *env) finish(sec secrets) {
 // prepare creates a fresh workspace and devbox. logPrefix names the stage's
 // artifacts in outDir. The returned close func tears everything down.
 func prepare(ctx context.Context, cfg Config, t targets.Target, containerName, outDir, logPrefix string) (*env, func(), error) {
-	ws, err := sandbox.Prepare(ctx, cfg.WorkRoot, t.Repo, t.Ref, cfg.Keep)
+	ws, err := sandbox.Prepare(ctx, cfg.WorkRoot, t.Repo, t.Ref, cfg.Keep, cfg.GitHubToken)
 	if err != nil {
 		return nil, func() {}, err
 	}
@@ -230,6 +233,7 @@ func newhire(ctx context.Context, cfg Config, t targets.Target, outDir string, d
 		return finish(err)
 	}
 	defer closeEnv()
+	run.BaseCommit = e.ws.Commit
 	if docOverride != nil {
 		if err := e.writeDoc(ctx, t.DocPath, docOverride); err != nil {
 			return finish(err)
@@ -369,6 +373,10 @@ func fixAndVerify(ctx context.Context, cfg Config, t targets.Target, run *report
 		return fail(err)
 	}
 	if err := os.WriteFile(filepath.Join(outDir, run.ID+".fixed"+filepath.Ext(t.DocPath)), []byte(creds.Redact(final, sec)), 0o644); err != nil {
+		return fail(err)
+	}
+	// The original, so a PR can check upstream hasn't changed since the run.
+	if err := os.WriteFile(filepath.Join(outDir, run.ID+".orig"+filepath.Ext(t.DocPath)), origB, 0o644); err != nil {
 		return fail(err)
 	}
 	if !cfg.Verify {

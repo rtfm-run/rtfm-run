@@ -1,0 +1,27 @@
+#!/bin/sh
+# PID 1 of a devbox microVM, before systemd.
+#
+# The root disk (/dev/vda) is a read-only image shared by every box. Each box
+# gets an empty scratch disk (/dev/vdb). This script stacks them with
+# overlayfs so all writes land on the scratch disk, then hands off to
+# systemd. Docker's and containerd's data dirs live directly on the scratch
+# disk: Docker's overlay2 storage driver cannot run on top of overlayfs.
+set -e
+
+# The kernel may already have mounted some of these (e.g. DEVTMPFS_MOUNT).
+mountpoint -q /proc || mount -t proc proc /proc
+mountpoint -q /sys || mount -t sysfs sysfs /sys
+mountpoint -q /dev || mount -t devtmpfs devtmpfs /dev
+mkdir -p /run && { mountpoint -q /run || mount -t tmpfs -o mode=0755 tmpfs /run; }
+
+mount -t ext4 -o noatime /dev/vdb /overlay
+mkdir -p /overlay/upper /overlay/work /overlay/docker /overlay/containerd
+mount -t overlay overlay -o lowerdir=/,upperdir=/overlay/upper,workdir=/overlay/work /newroot
+
+mount --move /overlay /newroot/overlay
+mkdir -p /newroot/var/lib/docker /newroot/var/lib/containerd
+mount --bind /newroot/overlay/docker /newroot/var/lib/docker
+mount --bind /newroot/overlay/containerd /newroot/var/lib/containerd
+
+# switch_root moves /dev, /proc, /sys and /run into the new root.
+exec switch_root /newroot /lib/systemd/systemd

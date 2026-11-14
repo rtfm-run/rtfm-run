@@ -20,11 +20,22 @@ type rule struct {
 
 func fixed(s string) func([]string) string { return func([]string) string { return s } }
 
+func firstGroup(m []string) string {
+	for _, g := range m[1:] {
+		if g != "" {
+			return g
+		}
+	}
+	return ""
+}
+
 // Rules are tried in order; the first match wins.
 var rules = []rule{
-	{report.KindMissingPrereq, regexp.MustCompile(`(?m)(?:^|\s|:)([\w.+-]+): (?:command not found|not found)\s*$`),
+	// bash: "foo: command not found"; dash/sh: "sh: 1: foo: not found". A bare
+	// "X: not found" is NOT a missing command (e.g. "…file provided: not found").
+	{report.KindMissingPrereq, regexp.MustCompile(`(?m)(?:^|\s|:)([\w.+-]+): command not found\s*$|^(?:/bin/)?(?:sh|dash|bash)(?:: line)?:? \d+: ([\w.+-]+): not found\s*$`),
 		func(m []string) string {
-			return fmt.Sprintf("`%s` isn't available on a fresh machine and the docs don't install it before using it.", m[1])
+			return fmt.Sprintf("`%s` isn't available on a fresh machine and the docs don't install it before using it.", firstGroup(m))
 		}},
 	{report.KindMissingPrereq, regexp.MustCompile(`'([\w.+-]+)' is not recognized as an internal or external command`),
 		func(m []string) string {

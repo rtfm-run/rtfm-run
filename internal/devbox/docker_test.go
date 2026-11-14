@@ -99,10 +99,12 @@ func TestFirecrackerBox(t *testing.T) {
 	if err := f.Ready(context.Background()); err != nil {
 		t.Skip(err)
 	}
+	t0 := time.Now()
 	box, err := f.Start(context.Background(), "vg-test-fc-"+time.Now().Format("150405.000000"))
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Logf("microVM ready in %s", time.Since(t0).Round(10*time.Millisecond))
 	defer box.Stop(context.Background())
 	testBoxContract(t, box)
 

@@ -6,6 +6,7 @@ package sandbox
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"os"
 	"os/exec"
@@ -27,7 +28,9 @@ type Workspace struct {
 	Root     string
 	Dir      string // Root/project
 	AgentDir string // Root/agent
-	keep     bool
+	// Commit is the checked-out commit (git rev-parse HEAD), if a git repo.
+	Commit string
+	keep   bool
 }
 
 // Cleanup removes the workspace unless it was created with keep=true.
@@ -46,7 +49,9 @@ func IsRemote(src string) bool {
 
 // Prepare creates a fresh workspace under root containing src: a shallow git
 // clone for remote URLs (at ref, if set), or a copy for local directories.
-func Prepare(ctx context.Context, root, src, ref string, keep bool) (*Workspace, error) {
+// githubToken, if set, authenticates clones of https://github.com URLs so
+// private repositories work.
+func Prepare(ctx context.Context, root, src, ref string, keep bool, githubToken string) (*Workspace, error) {
 	if err := os.MkdirAll(root, 0o755); err != nil {
 		return nil, fmt.Errorf("sandbox: %w", err)
 	}
@@ -72,9 +77,11 @@ func Prepare(ctx context.Context, root, src, ref string, keep bool) (*Workspace,
 		args = append(args, "--", src, dir)
 		cmd := exec.CommandContext(ctx, "git", args...)
 		cmd.Env = append(os.Environ(), "GIT_TERMINAL_PROMPT=0")
+		cmd.Env = append(cmd.Env, gitAuthEnv(src, githubToken)...)
 		if out, err := cmd.CombinedOutput(); err != nil {
 			return fail(fmt.Errorf("sandbox: git clone %s: %v: %s", src, err, strings.TrimSpace(string(out))))
 		}
+		ws.Commit = headCommit(ctx, dir)
 		return ws, nil
 	}
 
@@ -88,5 +95,30 @@ func Prepare(ctx context.Context, root, src, ref string, keep bool) (*Workspace,
 	if err := os.CopyFS(dir, os.DirFS(abs)); err != nil {
 		return fail(fmt.Errorf("sandbox: copy %s: %w", src, err))
 	}
+	ws.Commit = headCommit(ctx, dir)
 	return ws, nil
+}
+
+// gitAuthEnv passes a GitHub token to git as an HTTP header through git's
+// environment-variable config (GIT_CONFIG_*), scoped to github.com. The token
+// never appears on a command line or in the clone's .git/config.
+func gitAuthEnv(src, token string) []string {
+	if token == "" || !strings.HasPrefix(src, "https://github.com/") {
+		return nil
+	}
+	basic := base64.StdEncoding.EncodeToString([]byte("x-access-token:" + token))
+	return []string{
+		"GIT_CONFIG_COUNT=1",
+		"GIT_CONFIG_KEY_0=http.https://github.com/.extraheader",
+		"GIT_CONFIG_VALUE_0=Authorization: Basic " + basic,
+	}
+}
+
+// headCommit returns the commit checked out in dir, or "" if not a git repo.
+func headCommit(ctx context.Context, dir string) string {
+	out, err := exec.CommandContext(ctx, "git", "-C", dir, "rev-parse", "HEAD").Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(out))
 }

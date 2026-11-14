@@ -189,3 +189,21 @@ func UnifiedDiff(ctx context.Context, name, before, after string) (string, error
 	}
 	return out.String(), nil
 }
+
+// FirstError returns the most telling error line from the step's first
+// failed real attempt (the last non-empty line of its output), for summaries.
+func FirstError(run *report.Run, s report.Step) string {
+	out := failingOutput(run, s)
+	lines := strings.Split(strings.TrimSpace(out), "\n")
+	for i := len(lines) - 1; i >= 0; i-- {
+		l := strings.TrimSpace(lines[i])
+		if l == "" || strings.HasPrefix(l, "…(truncated)") {
+			continue
+		}
+		if r := []rune(l); len(r) > 160 {
+			l = string(r[:157]) + "..."
+		}
+		return l
+	}
+	return ""
+}

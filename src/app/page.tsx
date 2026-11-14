@@ -2,6 +2,7 @@ import Link from "next/link";
 import CopyButton from "./copy-button";
 import RunReplay from "./run-replay";
 import Wordmark from "./wordmark";
+import "./nav.css";
 
 const GITHUB = "https://github.com/rtfm-run";
 const BADGE_MD =
@@ -44,12 +45,13 @@ export default function Home() {
         <div>
           <Wordmark />
         </div>
-        <div className="r">
-          <Link href="/dashboard">dashboard</Link> · <Link href="/login">sign in</Link> ·{" "}
+        <nav className="r topnav">
+          <Link href="/dashboard">dashboard</Link>
+          <Link href="/login">sign in</Link>
           <a className="hl" href={GITHUB}>
             github
           </a>
-        </div>
+        </nav>
       </header>
 
       <h1>

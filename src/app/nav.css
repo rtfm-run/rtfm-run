@@ -1,0 +1,16 @@
+.topnav {
+  display: flex;
+  align-items: center;
+  gap: 2.5ch;
+  white-space: nowrap;
+}
+
+.topnav .hl {
+  margin: 0;
+}
+
+@media (max-width: 520px) {
+  .topnav .hl {
+    display: none;
+  }
+}

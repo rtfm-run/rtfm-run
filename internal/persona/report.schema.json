@@ -1,0 +1,25 @@
+{
+  "type": "object",
+  "required": ["succeeded", "steps"],
+  "properties": {
+    "succeeded": { "type": "boolean" },
+    "gave_up_reason": { "type": "string" },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["index", "instruction", "status"],
+        "properties": {
+          "index": { "type": "integer" },
+          "doc_ref": { "type": "string" },
+          "instruction": { "type": "string" },
+          "command": { "type": "string" },
+          "exit_code": { "type": "integer" },
+          "output": { "type": "string" },
+          "status": { "type": "string", "enum": ["pass", "fail", "skipped", "unsupported"] },
+          "note": { "type": "string" }
+        }
+      }
+    }
+  }
+}

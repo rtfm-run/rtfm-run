@@ -41,11 +41,18 @@ type Prompter interface {
 	Prompt(ctx context.Context, target string, req Request) (value string, save bool, ok bool, err error)
 }
 
+// Source is where saved credentials come from: the user's local Store, or
+// (in the service) a quickstart's encrypted credentials in the database.
+type Source interface {
+	Get(name string) (string, bool, error)
+	Set(name, value string) error
+}
+
 // Broker answers credential requests for runs. One Broker is shared by all
 // runs in a process; prompts are serialized so parallel runs never ask the
 // user two things at once.
 type Broker struct {
-	Store    *Store   // may be nil
+	Store    Source   // may be nil
 	Prompter Prompter // nil = never prompt
 	promptMu sync.Mutex
 }

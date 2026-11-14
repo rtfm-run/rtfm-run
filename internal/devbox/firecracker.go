@@ -109,6 +109,11 @@ func (f Firecracker) Start(ctx context.Context, name string) (Box, error) {
 	if mem <= 0 {
 		mem = 4096
 	}
+	startMu.Lock()
+	if err := checkCapacity(ctx, f.bin(), mem+256); err != nil { // + VMM/container overhead
+		startMu.Unlock()
+		return nil, err
+	}
 	args := []string{"run", "-d",
 		"--name", name,
 		"--label", "vanguard.run=devbox",
@@ -124,6 +129,7 @@ func (f Firecracker) Start(ctx context.Context, name string) (Box, error) {
 		f.image(),
 	}
 	out, err := exec.CommandContext(ctx, f.bin(), args...).CombinedOutput()
+	startMu.Unlock() // the container exists now, so later checks count it
 	if err != nil {
 		return nil, fmt.Errorf("devbox: start microVM: %v: %s", err, strings.TrimSpace(string(out)))
 	}

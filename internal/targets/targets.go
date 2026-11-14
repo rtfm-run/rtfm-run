@@ -17,6 +17,8 @@ type Target struct {
 	// Repo is a git URL or a local directory.
 	Repo string `json:"repo"`
 	Ref  string `json:"ref,omitempty"`
+	// Commit, if set, tests exactly this commit (e.g. the one a push made).
+	Commit string `json:"commit,omitempty"`
 	// DocPath is the quickstart doc, relative to the repo root.
 	DocPath string `json:"doc"`
 	// Goal says what "done" means, e.g. "print a reply from the Gemini API".

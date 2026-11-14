@@ -44,6 +44,15 @@ type Agy struct {
 
 func (a Agy) Name() string { return "agy" }
 
+// MCPChildEnv is set in the devbox MCP server's environment. Code that
+// starts devboxes refuses to run when it is set, so a misconfigured server
+// binary can never recurse into starting more devboxes.
+const MCPChildEnv = "VANGUARD_DEVBOX_MCP_CHILD"
+
+func isTestBinary(p string) bool {
+	return strings.HasSuffix(filepath.Base(p), ".test") || strings.Contains(p, string(filepath.Separator)+"go-build")
+}
+
 // Run runs the newhire persona.
 func (a Agy) Run(ctx context.Context, req Request) (*stream.Summary, error) {
 	prompt, err := persona.Render(persona.Input{Project: ProjectRel(req), DocPath: req.DocPath, Goal: req.Goal,
@@ -183,6 +192,11 @@ func (a Agy) installMCP(req Request) error {
 			return fmt.Errorf("agy: locate vanguard binary: %w", err)
 		}
 	}
+	// Launching a Go test binary as the MCP server re-runs the tests inside
+	// it, which can recurse (each level starting another devbox).
+	if isTestBinary(self) {
+		return fmt.Errorf("agy: %s is a Go test binary, not vanguard; set Agy.SelfBin to a built vanguard binary", self)
+	}
 	mcpArgs := []string{"devbox-mcp", "--backend", req.BoxBackend, "--box", req.BoxID, "--workdir", req.BoxWorkdir}
 	if req.ExecLog != "" {
 		mcpArgs = append(mcpArgs, "--log", req.ExecLog)
@@ -194,7 +208,7 @@ func (a Agy) installMCP(req Request) error {
 		mcpArgs = append(mcpArgs, "--broker", req.BrokerSocket)
 	}
 	cfg := map[string]any{"mcpServers": map[string]any{
-		mcpexec.ServerName: map[string]any{"command": self, "args": mcpArgs},
+		mcpexec.ServerName: map[string]any{"command": self, "args": mcpArgs, "env": map[string]string{MCPChildEnv: "1"}},
 	}}
 	b, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {

@@ -53,6 +53,12 @@ func main() {
 		err = cmdRun(ctx, os.Args[2:])
 	case "sweep":
 		err = cmdSweep(ctx, os.Args[2:])
+	case "serve":
+		err = cmdServe(ctx, os.Args[2:])
+	case "worker":
+		err = cmdWorker(ctx, os.Args[2:])
+	case "migrate":
+		err = cmdMigrate(ctx)
 	case "pr":
 		err = cmdPR(ctx, os.Args[2:])
 	case "creds":
@@ -85,6 +91,9 @@ Usage:
   vanguard pr <target|run.json> [flags]  preview (or --open) a pull request for a verified fix
   vanguard creds set|list|rm [NAME]     manage credentials quickstarts may need
   vanguard devbox build                 build the blank-slate devbox image
+  vanguard serve [--workers N]          run the API (+ workers) for the dashboard
+  vanguard worker [--workers N]         run workers only (KVM hosts)
+  vanguard migrate                      apply database migrations
   vanguard version
 
 Run 'vanguard run -h' or 'vanguard sweep -h' for flags.

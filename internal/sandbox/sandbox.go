@@ -49,9 +49,10 @@ func IsRemote(src string) bool {
 
 // Prepare creates a fresh workspace under root containing src: a shallow git
 // clone for remote URLs (at ref, if set), or a copy for local directories.
+// commit, if set, checks out exactly that commit (fetched shallowly).
 // githubToken, if set, authenticates clones of https://github.com URLs so
 // private repositories work.
-func Prepare(ctx context.Context, root, src, ref string, keep bool, githubToken string) (*Workspace, error) {
+func Prepare(ctx context.Context, root, src, ref, commit string, keep bool, githubToken string) (*Workspace, error) {
 	if err := os.MkdirAll(root, 0o755); err != nil {
 		return nil, fmt.Errorf("sandbox: %w", err)
 	}
@@ -67,6 +68,24 @@ func Prepare(ctx context.Context, root, src, ref string, keep bool, githubToken 
 	}
 	if err := os.MkdirAll(ws.AgentDir, 0o755); err != nil {
 		return fail(fmt.Errorf("sandbox: %w", err))
+	}
+
+	if IsRemote(src) && commit != "" {
+		env := append(append(os.Environ(), "GIT_TERMINAL_PROMPT=0"), gitAuthEnv(src, githubToken)...)
+		for _, args := range [][]string{
+			{"init", "-q", dir},
+			{"-C", dir, "remote", "add", "origin", src},
+			{"-C", dir, "fetch", "-q", "--depth", "1", "origin", commit},
+			{"-C", dir, "checkout", "-q", "--detach", "FETCH_HEAD"},
+		} {
+			cmd := exec.CommandContext(ctx, "git", args...)
+			cmd.Env = env
+			if out, err := cmd.CombinedOutput(); err != nil {
+				return fail(fmt.Errorf("sandbox: git %s: %v: %s", args[len(args)-2], err, strings.TrimSpace(string(out))))
+			}
+		}
+		ws.Commit = headCommit(ctx, dir)
+		return ws, nil
 	}
 
 	if IsRemote(src) {

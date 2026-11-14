@@ -60,7 +60,9 @@ func IsStatus(err error, status int) bool {
 	return errors.As(err, &ae) && ae.Status == status
 }
 
-func (c *Client) do(ctx context.Context, method, path string, in, out any) error {
+// Do performs an API request: in (if non-nil) is sent as JSON, a 2xx
+// response is decoded into out (if non-nil), anything else is an *APIError.
+func (c *Client) Do(ctx context.Context, method, path string, in, out any) error {
 	base := c.BaseURL
 	if base == "" {
 		base = "https://api.github.com"
@@ -134,7 +136,7 @@ func (c *Client) User(ctx context.Context) (string, error) {
 	var u struct {
 		Login string `json:"login"`
 	}
-	err := c.do(ctx, http.MethodGet, "/user", nil, &u)
+	err := c.Do(ctx, http.MethodGet, "/user", nil, &u)
 	return u.Login, err
 }
 
@@ -153,7 +155,7 @@ type RepoInfo struct {
 // Repo fetches repository metadata.
 func (c *Client) Repo(ctx context.Context, r Repo) (*RepoInfo, error) {
 	var info RepoInfo
-	err := c.do(ctx, http.MethodGet, "/repos/"+r.String(), nil, &info)
+	err := c.Do(ctx, http.MethodGet, "/repos/"+r.String(), nil, &info)
 	return &info, err
 }
 
@@ -161,7 +163,7 @@ func (c *Client) Repo(ctx context.Context, r Repo) (*RepoInfo, error) {
 // existing fork) and waits until it is usable.
 func (c *Client) Fork(ctx context.Context, r Repo) (Repo, error) {
 	var info RepoInfo
-	if err := c.do(ctx, http.MethodPost, "/repos/"+r.String()+"/forks", map[string]any{}, &info); err != nil {
+	if err := c.Do(ctx, http.MethodPost, "/repos/"+r.String()+"/forks", map[string]any{}, &info); err != nil {
 		return Repo{}, err
 	}
 	fork := Repo{info.Owner.Login, info.Name}
@@ -180,7 +182,7 @@ func (c *Client) Fork(ctx context.Context, r Repo) (Repo, error) {
 
 // SyncFork fast-forwards a fork's branch to its upstream (merge-upstream).
 func (c *Client) SyncFork(ctx context.Context, fork Repo, branch string) error {
-	return c.do(ctx, http.MethodPost, "/repos/"+fork.String()+"/merge-upstream", map[string]string{"branch": branch}, nil)
+	return c.Do(ctx, http.MethodPost, "/repos/"+fork.String()+"/merge-upstream", map[string]string{"branch": branch}, nil)
 }
 
 // BranchSHA returns the commit a branch points at.
@@ -190,13 +192,13 @@ func (c *Client) BranchSHA(ctx context.Context, r Repo, branch string) (string, 
 			SHA string `json:"sha"`
 		} `json:"object"`
 	}
-	err := c.do(ctx, http.MethodGet, "/repos/"+r.String()+"/git/ref/heads/"+escapePath(branch), nil, &ref)
+	err := c.Do(ctx, http.MethodGet, "/repos/"+r.String()+"/git/ref/heads/"+escapePath(branch), nil, &ref)
 	return ref.Object.SHA, err
 }
 
 // CreateBranch creates branch at sha.
 func (c *Client) CreateBranch(ctx context.Context, r Repo, branch, sha string) error {
-	return c.do(ctx, http.MethodPost, "/repos/"+r.String()+"/git/refs",
+	return c.Do(ctx, http.MethodPost, "/repos/"+r.String()+"/git/refs",
 		map[string]string{"ref": "refs/heads/" + branch, "sha": sha}, nil)
 }
 
@@ -212,7 +214,7 @@ func (c *Client) File(ctx context.Context, r Repo, path, ref string) ([]byte, st
 	if ref != "" {
 		p += "?ref=" + url.QueryEscape(ref)
 	}
-	if err := c.do(ctx, http.MethodGet, p, nil, &f); err != nil {
+	if err := c.Do(ctx, http.MethodGet, p, nil, &f); err != nil {
 		return nil, "", err
 	}
 	if f.Type != "file" || f.Encoding != "base64" {
@@ -241,7 +243,7 @@ func (c *Client) UpdateFile(ctx context.Context, r Repo, path, branch, blobSHA, 
 	if author != nil {
 		body["author"], body["committer"] = author, author
 	}
-	return c.do(ctx, http.MethodPut, "/repos/"+r.String()+"/contents/"+escapePath(path), body, nil)
+	return c.Do(ctx, http.MethodPut, "/repos/"+r.String()+"/contents/"+escapePath(path), body, nil)
 }
 
 // Entry is one item in a directory listing.
@@ -262,7 +264,7 @@ func (c *Client) ListDir(ctx context.Context, r Repo, path, ref string) ([]Entry
 		p += "?ref=" + url.QueryEscape(ref)
 	}
 	var entries []Entry
-	if err := c.do(ctx, http.MethodGet, p, nil, &entries); err != nil {
+	if err := c.Do(ctx, http.MethodGet, p, nil, &entries); err != nil {
 		if IsStatus(err, http.StatusNotFound) {
 			return nil, nil
 		}
@@ -281,7 +283,7 @@ type PullRequest struct {
 // "owner:branch" from a fork.
 func (c *Client) CreatePR(ctx context.Context, r Repo, title, body, head, base string) (*PullRequest, error) {
 	var pr PullRequest
-	err := c.do(ctx, http.MethodPost, "/repos/"+r.String()+"/pulls", map[string]any{
+	err := c.Do(ctx, http.MethodPost, "/repos/"+r.String()+"/pulls", map[string]any{
 		"title": title, "body": body, "head": head, "base": base, "maintainer_can_modify": true,
 	}, &pr)
 	return &pr, err

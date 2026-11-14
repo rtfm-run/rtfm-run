@@ -57,6 +57,8 @@ type Config struct {
 	// GitHubToken authenticates clones of private GitHub repositories. It is
 	// used only on the host by git; it never enters the devbox.
 	GitHubToken string
+	// OnEvent, if set, is told when stages start and finish (for progress UIs).
+	OnEvent func(kind string, data map[string]any)
 	// Broker answers the agent's credential requests (devbox mode only).
 	// Nil disables the request_credential tool.
 	Broker *creds.Broker
@@ -76,6 +78,9 @@ func (s secrets) add(m map[string]string) {
 // *report.Run is returned whenever the run got far enough to record
 // anything, even alongside an error.
 func Execute(ctx context.Context, cfg Config, t targets.Target) (*report.Run, error) {
+	if os.Getenv(runner.MCPChildEnv) != "" {
+		return nil, errors.New("pipeline: refusing to start devboxes from inside a devbox MCP server process (recursion guard)")
+	}
 	if err := t.Validate(); err != nil {
 		return nil, err
 	}
@@ -88,7 +93,12 @@ func Execute(ctx context.Context, cfg Config, t targets.Target) (*report.Run, er
 	}
 
 	sec := secrets{}
+	cfg.emit("stage_started", map[string]any{"stage": "newhire"})
 	run, err := newhire(ctx, cfg, t, outDir, nil, true, sec)
+	if run != nil {
+		pass, fail, unsup := run.Counts()
+		cfg.emit("stage_finished", map[string]any{"stage": "newhire", "works": run.Works(), "pass": pass, "fail": fail, "unsupported": unsup, "error": run.Error})
+	}
 	// Blocked runs are fixed too: the doc may still be missing install or
 	// setup steps; verification then reports whether it is still blocked.
 	if err != nil || !cfg.Fix || run.Issues() == 0 {
@@ -96,6 +106,12 @@ func Execute(ctx context.Context, cfg Config, t targets.Target) (*report.Run, er
 	}
 	run.Fix = fixAndVerify(ctx, cfg, t, run, outDir, sec)
 	return run, save(outDir, run, true, sec)
+}
+
+func (c Config) emit(kind string, data map[string]any) {
+	if c.OnEvent != nil {
+		c.OnEvent(kind, data)
+	}
 }
 
 // env is a prepared stage: a fresh checkout plus (optionally) a devbox and
@@ -121,7 +137,7 @@ func (e *env) finish(sec secrets) {
 // prepare creates a fresh workspace and devbox. logPrefix names the stage's
 // artifacts in outDir. The returned close func tears everything down.
 func prepare(ctx context.Context, cfg Config, t targets.Target, containerName, outDir, logPrefix string) (*env, func(), error) {
-	ws, err := sandbox.Prepare(ctx, cfg.WorkRoot, t.Repo, t.Ref, cfg.Keep, cfg.GitHubToken)
+	ws, err := sandbox.Prepare(ctx, cfg.WorkRoot, t.Repo, t.Ref, t.Commit, cfg.Keep, cfg.GitHubToken)
 	if err != nil {
 		return nil, func() {}, err
 	}
@@ -282,6 +298,15 @@ func fixAndVerify(ctx context.Context, cfg Config, t targets.Target, run *report
 		return fr
 	}
 
+	cfg.emit("stage_started", map[string]any{"stage": "fix"})
+	fixDone := false
+	finishFix := func(status string) { // reported once: before verify starts, or on any early return
+		if !fixDone {
+			fixDone = true
+			cfg.emit("stage_finished", map[string]any{"stage": "fix", "status": status, "patch": fr.Patch != ""})
+		}
+	}
+	defer func() { finishFix(fr.Status) }()
 	e, closeEnv, err := prepare(ctx, cfg, t, "vg-"+run.ID+"-fix", outDir, run.ID+".fix")
 	if err != nil {
 		return fail(err)
@@ -385,7 +410,12 @@ func fixAndVerify(ctx context.Context, cfg Config, t targets.Target, run *report
 	}
 
 	// 3. Verify: a fresh newcomer follows the fixed doc.
+	finishFix("proposed")
+	cfg.emit("stage_started", map[string]any{"stage": "verify"})
 	vrun, verr := newhire(ctx, cfg, t, outDir, finalB, false, sec)
+	if vrun != nil {
+		cfg.emit("stage_finished", map[string]any{"stage": "verify", "works": vrun.Works(), "issues": vrun.Issues()})
+	}
 	if vrun != nil {
 		fr.VerifyRunID = vrun.ID
 		fr.IssuesAfter = vrun.DocIssues()

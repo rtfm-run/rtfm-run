@@ -172,3 +172,24 @@ func TestResolve(t *testing.T) {
 		}
 	}
 }
+
+func TestMaxBoxes(t *testing.T) {
+	t.Setenv("VANGUARD_MAX_BOXES", "3")
+	if MaxBoxes(4096) != 3 {
+		t.Error("env override ignored")
+	}
+	t.Setenv("VANGUARD_MAX_BOXES", "")
+	total := memTotalMiB()
+	if total > 0 {
+		want := max(1, (total-reserveMiB)/4096)
+		if got := MaxBoxes(4096); got != want {
+			t.Errorf("MaxBoxes(4096) = %d, want %d for %d MiB", got, want, total)
+		}
+	}
+	if MaxBoxes(1<<30) != 1 {
+		t.Error("at least one box must be allowed")
+	}
+	if parseMemMiB("4g") != 4096 || parseMemMiB("512m") != 512 || parseMemMiB("") != 0 {
+		t.Error("parseMemMiB")
+	}
+}

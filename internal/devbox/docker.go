@@ -57,6 +57,15 @@ func (d Docker) Ready(ctx context.Context) error {
 // Start launches a fresh container with normal outbound network access
 // (quickstarts download things) and resource limits.
 func (d Docker) Start(ctx context.Context, name string) (Box, error) {
+	startMu.Lock()
+	defer startMu.Unlock()
+	perBox := parseMemMiB(d.Memory)
+	if perBox == 0 {
+		perBox = 2048 // no limit set: assume a typical box
+	}
+	if err := checkCapacity(ctx, d.bin(), perBox); err != nil {
+		return nil, err
+	}
 	args := []string{"run", "-d",
 		"--name", name,
 		"--hostname", "devbox",

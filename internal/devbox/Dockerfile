@@ -32,6 +32,14 @@ RUN curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" \
 # Common "python" alias that many READMEs assume.
 RUN ln -s /usr/bin/python3 /usr/local/bin/python
 
-ENV PATH=/root/.local/bin:/root/go/bin:$PATH
+# A default, already-active Python environment, like a typical developer
+# machine (pyenv, conda, Homebrew, devcontainers): `pip install x` works
+# instead of tripping Ubuntu's PEP 668 "externally managed" guard, which is
+# a property of this image, not of the docs under test. Projects that make
+# their own venv (`python3 -m venv .venv`) are unaffected.
+RUN python3 -m venv /opt/python && /opt/python/bin/pip install --no-cache-dir --upgrade pip
+
+ENV VIRTUAL_ENV=/opt/python \
+    PATH=/opt/python/bin:/root/.local/bin:/root/go/bin:$PATH
 WORKDIR /root
 CMD ["sleep", "infinity"]

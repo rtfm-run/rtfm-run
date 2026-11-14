@@ -13,18 +13,29 @@ import (
 	"strings"
 )
 
-// Workspace is a prepared checkout.
+// ProjectDirName is the subdirectory of a workspace holding the checkout.
+// Run scaffolding (agent config, MCP registration) lives next to it in the
+// workspace root, so the project tree stays exactly as the docs expect.
+const ProjectDirName = "project"
+
+// Workspace is a prepared checkout on the host:
+//
+//	Root/project  the pristine checkout (copied into the devbox)
+//	Root/agent    the agent's own cwd: only its config, never project files
+//	Root/*.sock   run plumbing (credential broker)
 type Workspace struct {
-	Dir  string
-	keep bool
+	Root     string
+	Dir      string // Root/project
+	AgentDir string // Root/agent
+	keep     bool
 }
 
 // Cleanup removes the workspace unless it was created with keep=true.
 func (w *Workspace) Cleanup() error {
-	if w == nil || w.keep || w.Dir == "" {
+	if w == nil || w.keep || w.Root == "" {
 		return nil
 	}
-	return os.RemoveAll(w.Dir)
+	return os.RemoveAll(w.Root)
 }
 
 // IsRemote reports whether src should be cloned rather than copied.
@@ -39,11 +50,19 @@ func Prepare(ctx context.Context, root, src, ref string, keep bool) (*Workspace,
 	if err := os.MkdirAll(root, 0o755); err != nil {
 		return nil, fmt.Errorf("sandbox: %w", err)
 	}
-	dir, err := os.MkdirTemp(root, "ws-")
+	wsRoot, err := os.MkdirTemp(root, "ws-")
 	if err != nil {
 		return nil, fmt.Errorf("sandbox: %w", err)
 	}
-	ws := &Workspace{Dir: dir, keep: keep}
+	dir := filepath.Join(wsRoot, ProjectDirName)
+	ws := &Workspace{Root: wsRoot, Dir: dir, AgentDir: filepath.Join(wsRoot, "agent"), keep: keep}
+	fail := func(err error) (*Workspace, error) {
+		_ = os.RemoveAll(wsRoot)
+		return nil, err
+	}
+	if err := os.MkdirAll(ws.AgentDir, 0o755); err != nil {
+		return fail(fmt.Errorf("sandbox: %w", err))
+	}
 
 	if IsRemote(src) {
 		args := []string{"clone", "--depth", "1", "--quiet"}
@@ -54,26 +73,20 @@ func Prepare(ctx context.Context, root, src, ref string, keep bool) (*Workspace,
 		cmd := exec.CommandContext(ctx, "git", args...)
 		cmd.Env = append(os.Environ(), "GIT_TERMINAL_PROMPT=0")
 		if out, err := cmd.CombinedOutput(); err != nil {
-			_ = os.RemoveAll(dir)
-			return nil, fmt.Errorf("sandbox: git clone %s: %v: %s", src, err, strings.TrimSpace(string(out)))
+			return fail(fmt.Errorf("sandbox: git clone %s: %v: %s", src, err, strings.TrimSpace(string(out))))
 		}
 		return ws, nil
 	}
 
 	abs, err := filepath.Abs(src)
 	if err != nil {
-		_ = os.RemoveAll(dir)
-		return nil, fmt.Errorf("sandbox: %w", err)
+		return fail(fmt.Errorf("sandbox: %w", err))
 	}
 	if fi, err := os.Stat(abs); err != nil || !fi.IsDir() {
-		_ = os.RemoveAll(dir)
-		return nil, fmt.Errorf("sandbox: %s is not a directory or remote URL", src)
+		return fail(fmt.Errorf("sandbox: %s is not a directory or remote URL", src))
 	}
-	// MkdirTemp created dir; CopyFS needs the destination tree to not clash,
-	// which holds for an empty directory.
 	if err := os.CopyFS(dir, os.DirFS(abs)); err != nil {
-		_ = os.RemoveAll(dir)
-		return nil, fmt.Errorf("sandbox: copy %s: %w", src, err)
+		return fail(fmt.Errorf("sandbox: copy %s: %w", src, err))
 	}
 	return ws, nil
 }

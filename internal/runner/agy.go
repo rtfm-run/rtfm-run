@@ -44,12 +44,37 @@ type Agy struct {
 
 func (a Agy) Name() string { return "agy" }
 
+// Run runs the newhire persona.
 func (a Agy) Run(ctx context.Context, req Request) (*stream.Summary, error) {
-	devbox := req.Container != ""
-	prompt, err := persona.Render(persona.Input{DocPath: req.DocPath, Goal: req.Goal, Devbox: devbox})
+	prompt, err := persona.Render(persona.Input{Project: ProjectRel(req), DocPath: req.DocPath, Goal: req.Goal,
+		Devbox: req.BoxID != "", Credentials: req.BoxID != "" && req.BrokerSocket != ""})
 	if err != nil {
 		return nil, err
 	}
+	return a.RunPrompt(ctx, req, prompt, persona.Schema())
+}
+
+// ProjectRel is where the agent finds the project: the path inside the box
+// in devbox mode, otherwise the checkout relative to the agent's cwd.
+func ProjectRel(req Request) string {
+	if req.BoxID != "" {
+		return req.BoxWorkdir
+	}
+	if req.ProjectDir == "" {
+		return "."
+	}
+	rel, err := filepath.Rel(req.Workdir, req.ProjectDir)
+	if err != nil {
+		return "."
+	}
+	return rel
+}
+
+// RunPrompt runs an arbitrary prompt with the same isolation (devbox MCP,
+// denied native shell, accept-edits mode) and a JSON schema for the final
+// answer.
+func (a Agy) RunPrompt(ctx context.Context, req Request, prompt, schema string) (*stream.Summary, error) {
+	devbox := req.BoxID != ""
 	bin := a.Bin
 	if bin == "" {
 		bin = "agy"
@@ -57,7 +82,7 @@ func (a Agy) Run(ctx context.Context, req Request) (*stream.Summary, error) {
 	args := []string{
 		"-p", prompt,
 		"--output-format", "stream-json",
-		"--json-schema", persona.Schema(),
+		"--json-schema", schema,
 		"--sandbox",
 		"--mode", "accept-edits",
 	}
@@ -127,21 +152,22 @@ func (a Agy) Run(ctx context.Context, req Request) (*stream.Summary, error) {
 	return sum, nil
 }
 
-// devboxSettings are per-session agy settings (never saved): deny every
-// native shell command and allow only the devbox MCP server.
+// devboxSettings are per-session agy settings (never saved): deny agy's
+// native shell and file tools and allow only the devbox MCP server, so every
+// action happens inside the box.
 func devboxSettings() (string, error) {
 	b, err := json.Marshal(map[string]any{
 		"permissions": map[string]any{
-			"deny":  []string{"command(*)"},
+			"deny":  []string{"command(*)", "read_file(*)", "write_file(*)"},
 			"allow": []string{"mcp(" + mcpexec.ServerName + "/*)"},
 		},
 	})
 	return string(b), err
 }
 
-// installMCP registers the devbox MCP server for this workspace via
-// <workspace>/.agents/mcp_config.json (agy has no per-session MCP flag) and
-// hides it from git so the checkout still looks pristine.
+// installMCP registers the devbox MCP server for this run via
+// <agent cwd>/.agents/mcp_config.json (agy has no per-session MCP flag). The
+// agent's cwd holds nothing else; the project lives in the box.
 func (a Agy) installMCP(req Request) error {
 	self := a.SelfBin
 	if self == "" {
@@ -150,12 +176,15 @@ func (a Agy) installMCP(req Request) error {
 			return fmt.Errorf("agy: locate vanguard binary: %w", err)
 		}
 	}
-	mcpArgs := []string{"devbox-mcp", "--container", req.Container, "--workdir", req.Workdir}
+	mcpArgs := []string{"devbox-mcp", "--backend", req.BoxBackend, "--box", req.BoxID, "--workdir", req.BoxWorkdir}
 	if req.ExecLog != "" {
 		mcpArgs = append(mcpArgs, "--log", req.ExecLog)
 	}
 	if a.Docker != "" {
 		mcpArgs = append(mcpArgs, "--docker", a.Docker)
+	}
+	if req.BrokerSocket != "" {
+		mcpArgs = append(mcpArgs, "--broker", req.BrokerSocket)
 	}
 	cfg := map[string]any{"mcpServers": map[string]any{
 		mcpexec.ServerName: map[string]any{"command": self, "args": mcpArgs},
@@ -168,26 +197,5 @@ func (a Agy) installMCP(req Request) error {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
-	if err := os.WriteFile(filepath.Join(dir, "mcp_config.json"), b, 0o644); err != nil {
-		return err
-	}
-	if info := filepath.Join(req.Workdir, ".git", "info"); dirExists(filepath.Join(req.Workdir, ".git")) {
-		if err := os.MkdirAll(info, 0o755); err != nil {
-			return err
-		}
-		f, err := os.OpenFile(filepath.Join(info, "exclude"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-		if _, err := f.WriteString("\n/.agents/\n"); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func dirExists(p string) bool {
-	fi, err := os.Stat(p)
-	return err == nil && fi.IsDir()
+	return os.WriteFile(filepath.Join(dir, "mcp_config.json"), b, 0o644)
 }

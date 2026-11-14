@@ -1,0 +1,14 @@
+[Unit]
+Description=vanguard devbox agent
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/vanguard-agent
+Restart=always
+RestartSec=1
+EnvironmentFile=-/etc/environment
+
+[Install]
+WantedBy=multi-user.target

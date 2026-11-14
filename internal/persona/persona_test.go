@@ -27,3 +27,22 @@ func TestSchemaIsValidJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestRenderFixer(t *testing.T) {
+	p, err := RenderFixer(FixerInput{
+		Project: "project", DocPath: "README.md", Problems: "Step 4 [fail]: gemini: command not found", Devbox: true,
+		Applied: []AppliedFix{{StepIndex: 3, Original: "hello --user x", Proposed: "hello --name x"}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"project/README.md", "gemini: command not found", "`hello --user x` → `hello --name x`", "devbox"} {
+		if !strings.Contains(p, want) {
+			t.Errorf("fixer prompt missing %q", want)
+		}
+	}
+	var v map[string]any
+	if err := json.Unmarshal([]byte(FixerSchema()), &v); err != nil {
+		t.Fatal(err)
+	}
+}

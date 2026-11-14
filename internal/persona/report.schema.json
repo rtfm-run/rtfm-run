@@ -13,6 +13,7 @@
           "index": { "type": "integer" },
           "doc_ref": { "type": "string" },
           "instruction": { "type": "string" },
+          "doc_command": { "type": "string" },
           "command": { "type": "string" },
           "exit_code": { "type": "integer" },
           "output": { "type": "string" },

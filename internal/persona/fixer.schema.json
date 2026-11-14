@@ -1,0 +1,29 @@
+{
+  "type": "object",
+  "required": ["changes", "unresolved"],
+  "properties": {
+    "changes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["step_index", "summary", "evidence"],
+        "properties": {
+          "step_index": { "type": "integer" },
+          "summary": { "type": "string" },
+          "evidence": { "type": "string" }
+        }
+      }
+    },
+    "unresolved": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["step_index", "reason"],
+        "properties": {
+          "step_index": { "type": "integer" },
+          "reason": { "type": "string" }
+        }
+      }
+    }
+  }
+}

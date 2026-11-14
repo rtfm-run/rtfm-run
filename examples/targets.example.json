@@ -1,0 +1,16 @@
+[
+  {
+    "name": "stale-demo",
+    "repo": "examples/stale-quickstart",
+    "doc": "README.md",
+    "goal": "install the CLI, greet 'newhire', and get the Gemini explanation",
+    "success": ".venv/bin/hello --name newhire | grep -q 'Hello, newhire!'"
+  },
+  {
+    "name": "good-demo",
+    "repo": "examples/good-quickstart",
+    "doc": "README.md",
+    "goal": "start the server and see it report ready",
+    "success": "npm start | grep -q 'ready on http://localhost:3000'"
+  }
+]

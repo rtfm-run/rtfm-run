@@ -263,6 +263,29 @@ func TestFinishStepsAndHealth(t *testing.T) {
 	if strings.Join(kinds, ",") != "queued,started,finished" {
 		t.Errorf("events = %v", kinds)
 	}
+
+	// A run canceled partway keeps its findings, is recorded as canceled,
+	// and doesn't count toward step health.
+	run3, _ := d.Enqueue(ctx, w.qs, "manual", &w.alice.ID, "main", "")
+	_, err = d.Claim(ctx, "w")
+	must(t, err)
+	must(t, d.Finish(ctx, run3.ID, Outcome{CommitSHA: "ccc333", Verdict: "broken", Issues: 1, FixStatus: "error", Report: map[string]any{"id": "r3"}, Canceled: true,
+		Steps: []Step{{Stage: "newhire", Idx: 1, StepKey: "k-venv", DocCommand: "python3 -m venv .venv", Status: "pass", ObservedExit: &zero, ChecksOut: true}}}))
+	det3, err := d.RunDetailForUser(ctx, w.alice.ID, run3.ID)
+	must(t, err)
+	if det3.Status != RunCanceled || det3.Verdict != "broken" || len(det3.Steps) != 1 {
+		t.Errorf("canceled run = %+v", det3.Run)
+	}
+	health, _ = d.StepHealthForQuickstart(ctx, w.alice.ID, w.qs.ID)
+	for _, h := range health {
+		if h.StepKey == "k-venv" && h.CommitSHA == "ccc333" {
+			t.Errorf("canceled run counted in step health: %+v", h)
+		}
+	}
+	evs, _ = d.EventsSince(ctx, w.alice.ID, run3.ID, 0)
+	if last := evs[len(evs)-1].Kind; last != "canceled" {
+		t.Errorf("last event = %s", last)
+	}
 }
 
 func TestCancelAndCredentials(t *testing.T) {

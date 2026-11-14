@@ -216,7 +216,7 @@ func saveAppConfig(app ghapp.Created, base, envPath, pemPath string) error {
 		return err
 	}
 	vals := map[string]string{
-		"RTFM_BASE_URL":           base,
+		"RTFM_BASE_URL":               base,
 		"GITHUB_APP_ID":               fmt.Sprint(app.ID),
 		"GITHUB_APP_SLUG":             app.Slug,
 		"GITHUB_APP_CLIENT_ID":        app.ClientID,

@@ -1,0 +1,26 @@
+[Unit]
+Description=rtfm.run worker (runs quickstarts in microVMs)
+After=network-online.target docker.service cloud-sql-proxy.service
+Wants=network-online.target
+Requires=docker.service cloud-sql-proxy.service
+
+[Service]
+User=rtfm
+Group=rtfm
+SupplementaryGroups=docker kvm
+WorkingDirectory=/var/lib/rtfm
+# Written from Secret Manager by rtfm-fetch-secrets (setup.sh runs it once;
+# ExecStartPre refreshes it for the next start, since systemd reads the file
+# before running ExecStartPre).
+EnvironmentFile=/etc/rtfm/service.env
+ExecStartPre=+/usr/local/bin/rtfm-fetch-secrets
+Environment=HOME=/var/lib/rtfm
+ExecStart=/usr/local/bin/rtfm worker --workers ${RTFM_WORKERS} --out /var/lib/rtfm/runs --work /var/lib/rtfm/work --agy /usr/local/bin/agy $RTFM_WORKER_FLAGS
+Restart=always
+RestartSec=10
+# Let a running job finish its current step before being killed on stop.
+TimeoutStopSec=120
+KillSignal=SIGINT
+
+[Install]
+WantedBy=multi-user.target

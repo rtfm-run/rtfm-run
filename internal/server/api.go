@@ -106,6 +106,10 @@ func (in quickstartInput) apply(q *db.Quickstart) {
 	}
 }
 
+// DefaultGoal is used when a quickstart doesn't say what a newcomer should
+// achieve.
+const DefaultGoal = "follow the doc from start to finish and end up with the project installed and working"
+
 var branchName = regexp.MustCompile(`^[A-Za-z0-9._/-]{0,200}$`)
 
 func validQuickstart(q db.Quickstart) error {
@@ -138,6 +142,9 @@ func (s *Server) createQuickstart(w http.ResponseWriter, r *http.Request, u db.U
 	}
 	q := db.Quickstart{RepoID: repoID, Backend: "auto", Fix: true, Verify: true}
 	in.apply(&q)
+	if q.Goal == "" {
+		q.Goal = DefaultGoal
+	}
 	if err := validQuickstart(q); err != nil {
 		writeError(w, http.StatusUnprocessableEntity, err.Error())
 		return
@@ -199,6 +206,9 @@ func (s *Server) updateQuickstart(w http.ResponseWriter, r *http.Request, u db.U
 		return
 	}
 	in.apply(&q)
+	if q.Goal == "" {
+		q.Goal = DefaultGoal
+	}
 	if err := validQuickstart(q); err != nil {
 		writeError(w, http.StatusUnprocessableEntity, err.Error())
 		return

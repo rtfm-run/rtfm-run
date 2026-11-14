@@ -98,7 +98,9 @@ const MaxOutput = 32 << 10
 // ExecRecord is one logged operation, written as JSONL by the MCP server.
 type ExecRecord struct {
 	Time time.Time `json:"time"`
-	// Kind is "exec" (default) or a file operation: "write_file", "edit_file".
+	// Kind is "exec" (default), a file operation ("write_file",
+	// "edit_file"), or "progress" (an update the agent posted for the person
+	// watching; Command holds the message).
 	Kind       string `json:"kind,omitempty"`
 	Command    string `json:"command"` // the command, or the file path for file ops
 	Cwd        string `json:"cwd,omitempty"`

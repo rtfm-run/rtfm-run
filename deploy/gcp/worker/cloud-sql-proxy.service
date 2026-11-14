@@ -1,0 +1,14 @@
+[Unit]
+Description=Cloud SQL Auth Proxy (Postgres for the rtfm worker)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+EnvironmentFile=/etc/rtfm/proxy.env
+ExecStart=/usr/local/bin/cloud-sql-proxy --address 127.0.0.1 --port 5432 ${INSTANCE_CONNECTION_NAME}
+Restart=always
+RestartSec=5
+DynamicUser=yes
+
+[Install]
+WantedBy=multi-user.target

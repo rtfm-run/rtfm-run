@@ -59,6 +59,8 @@ func main() {
 		err = cmdWorker(ctx, os.Args[2:])
 	case "migrate":
 		err = cmdMigrate(ctx, os.Args[2:])
+	case "pr-draft":
+		err = cmdPRDraft(ctx, os.Args[2:])
 	case "github-app":
 		err = cmdGitHubApp(ctx, os.Args[2:])
 	case "pr":
@@ -96,6 +98,7 @@ Usage:
   rtfm serve [--workers N]          run the API (+ workers) for the dashboard
   rtfm worker [--workers N]         run workers only (KVM hosts)
   rtfm migrate                      apply database migrations
+  rtfm pr-draft <run-id>                prepare a finished run's pull request draft
   rtfm github-app create            register the GitHub App (one click on GitHub)
   rtfm version
 

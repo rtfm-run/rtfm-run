@@ -94,6 +94,9 @@ func Classify(text string, exitCode int) (report.FailureKind, string) {
 func Apply(run *report.Run) {
 	for i := range run.Steps {
 		s := &run.Steps[i]
+		if selfClone(run, s) {
+			continue
+		}
 		switch s.Status {
 		case report.StatusFail:
 			s.Failure, s.Diagnosis = classifyAttempts(run, s)

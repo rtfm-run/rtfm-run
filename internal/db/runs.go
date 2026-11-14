@@ -134,6 +134,9 @@ type Outcome struct {
 	Report       any // marshaled to JSON
 	VerifyReport any // may be nil
 	Steps        []Step
+	// Canceled records the run as canceled (a user stopped it partway)
+	// while keeping whatever it found before stopping.
+	Canceled bool
 }
 
 // Finish records a completed run and its steps.
@@ -148,11 +151,15 @@ func (d *DB) Finish(ctx context.Context, runID int64, o Outcome) error {
 			return err
 		}
 	}
+	status := RunSucceeded
+	if o.Canceled {
+		status = RunCanceled
+	}
 	err = pgx.BeginFunc(ctx, d.Pool, func(tx pgx.Tx) error {
 		if _, err := tx.Exec(ctx, `
-			UPDATE runs SET status = 'succeeded', finished_at = now(), commit_sha = CASE WHEN $2 = '' THEN commit_sha ELSE $2 END,
+			UPDATE runs SET status = $11, finished_at = now(), commit_sha = CASE WHEN $2 = '' THEN commit_sha ELSE $2 END,
 				verdict = $3, issues = $4, doc_issues = $5, fix_status = $6, report_id = $7, tokens = $8, report = $9, verify_report = $10
-			WHERE id = $1`, runID, o.CommitSHA, o.Verdict, o.Issues, o.DocIssues, o.FixStatus, o.ReportID, o.Tokens, rep, ver); err != nil {
+			WHERE id = $1`, runID, o.CommitSHA, o.Verdict, o.Issues, o.DocIssues, o.FixStatus, o.ReportID, o.Tokens, rep, ver, status); err != nil {
 			return err
 		}
 		if _, err := tx.Exec(ctx, `DELETE FROM run_steps WHERE run_id = $1`, runID); err != nil {
@@ -171,7 +178,11 @@ func (d *DB) Finish(ctx context.Context, runID int64, o Outcome) error {
 		return nil
 	})
 	if err == nil {
-		_ = d.AddEvent(ctx, runID, "finished", map[string]any{"verdict": o.Verdict, "issues": o.Issues, "fix": o.FixStatus})
+		if o.Canceled {
+			_ = d.AddEvent(ctx, runID, "canceled", map[string]any{"verdict": o.Verdict, "issues": o.Issues})
+		} else {
+			_ = d.AddEvent(ctx, runID, "finished", map[string]any{"verdict": o.Verdict, "issues": o.Issues, "fix": o.FixStatus})
+		}
 	}
 	return err
 }

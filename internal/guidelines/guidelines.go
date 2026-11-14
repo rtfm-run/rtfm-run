@@ -234,18 +234,30 @@ type Options struct {
 	Issue     string           // issue URL to reference
 }
 
+// Blocker codes, for interfaces that ask for the missing answer themselves.
+const (
+	BlockAIForbidden = "ai_forbidden" // the project refuses AI contributions (hard)
+	BlockIssue       = "issue"        // an issue must be referenced
+	BlockDCO         = "dco"          // a DCO sign-off is required
+	BlockIdentity    = "identity"     // signing off needs a name and email
+	BlockCLA         = "cla"          // a signed CLA is required
+	BlockAttest      = "attest"       // template items only the human can confirm
+)
+
 // Blocker stops --open until resolved. Hard blockers can't be overridden.
 type Blocker struct {
-	Message string
-	Hard    bool
+	Code    string   `json:"code"`
+	Message string   `json:"message"`
+	Hard    bool     `json:"hard,omitempty"`
+	Items   []string `json:"items,omitempty"` // for BlockAttest: the items to confirm
 }
 
 // Outcome reports how the guidelines were applied.
 type Outcome struct {
-	Found    []string
-	Applied  []string
-	Warnings []string
-	Blockers []Blocker
+	Found    []string  `json:"found"`
+	Applied  []string  `json:"applied"`
+	Warnings []string  `json:"warnings"`
+	Blockers []Blocker `json:"blockers"`
 }
 
 // Ready reports whether the PR may be opened.
@@ -269,7 +281,7 @@ func Apply(p *prs.Proposal, d *Decision, f *Found, opt Options) Outcome {
 
 	switch d.AIPolicy.Status {
 	case "forbidden":
-		o.Blockers = append(o.Blockers, Blocker{Hard: true, Message: "The project does not accept AI-generated contributions" + quoted(d.AIPolicy.Quote) + ". rtfm will not open this pull request; the patch and text are still saved locally."})
+		o.Blockers = append(o.Blockers, Blocker{Code: BlockAIForbidden, Hard: true, Message: "The project does not accept AI-generated contributions" + quoted(d.AIPolicy.Quote) + ". rtfm will not open this pull request; the patch and text are still saved locally."})
 	case "restricted":
 		o.Warnings = append(o.Warnings, "AI-assisted contributions are accepted with conditions: "+d.AIPolicy.Requirements+quoted(d.AIPolicy.Quote)+". Check the PR meets them.")
 	}
@@ -306,7 +318,7 @@ func Apply(p *prs.Proposal, d *Decision, f *Found, opt Options) Outcome {
 
 	if d.IssueFirst.Required {
 		if opt.Issue == "" {
-			o.Blockers = append(o.Blockers, Blocker{Message: "The guidelines require an issue before a pull request" + quoted(d.IssueFirst.Quote) + ". Open or find one, then pass --issue <url>."})
+			o.Blockers = append(o.Blockers, Blocker{Code: BlockIssue, Message: "The guidelines require an issue before a pull request" + quoted(d.IssueFirst.Quote) + ". Open or find one, then pass --issue <url>."})
 		} else {
 			p.Body = strings.TrimRight(p.Body, "\n") + "\n\nRelated issue: " + opt.Issue + "\n"
 			o.Applied = append(o.Applied, "Referenced issue "+opt.Issue)
@@ -316,9 +328,9 @@ func Apply(p *prs.Proposal, d *Decision, f *Found, opt Options) Outcome {
 	if d.DCORequired || f.DCOConfig {
 		switch {
 		case !opt.Signoff:
-			o.Blockers = append(o.Blockers, Blocker{Message: "The project requires a DCO sign-off (Signed-off-by), which certifies the contribution as yours. If you agree, pass --signoff to sign with your git identity."})
+			o.Blockers = append(o.Blockers, Blocker{Code: BlockDCO, Message: "The project requires a DCO sign-off (Signed-off-by), which certifies the contribution as yours. If you agree, pass --signoff to sign with your git identity."})
 		case opt.Identity == nil || opt.Identity.Name == "" || opt.Identity.Email == "":
-			o.Blockers = append(o.Blockers, Blocker{Message: "--signoff needs your git identity: set git config user.name and user.email."})
+			o.Blockers = append(o.Blockers, Blocker{Code: BlockIdentity, Message: "--signoff needs your git identity: set git config user.name and user.email."})
 		default:
 			p.CommitMessage = strings.TrimRight(p.CommitMessage, "\n") + fmt.Sprintf("\n\nSigned-off-by: %s <%s>\n", opt.Identity.Name, opt.Identity.Email)
 			p.Author = opt.Identity
@@ -326,7 +338,7 @@ func Apply(p *prs.Proposal, d *Decision, f *Found, opt Options) Outcome {
 		}
 	}
 	if d.CLARequired && !opt.CLASigned {
-		o.Blockers = append(o.Blockers, Blocker{Message: "The project requires a signed Contributor License Agreement. Sign it yourself, then pass --cla-signed."})
+		o.Blockers = append(o.Blockers, Blocker{Code: BlockCLA, Message: "The project requires a signed Contributor License Agreement. Sign it yourself, then pass --cla-signed."})
 	}
 
 	var human []string
@@ -345,7 +357,7 @@ func Apply(p *prs.Proposal, d *Decision, f *Found, opt Options) Outcome {
 		}
 	}
 	if len(human) > 0 {
-		o.Blockers = append(o.Blockers, Blocker{Message: "The template has items only you can confirm; review them and pass --attest if they are true:\n    - " + strings.Join(human, "\n    - ")})
+		o.Blockers = append(o.Blockers, Blocker{Code: BlockAttest, Items: human, Message: "The template has items only you can confirm; review them and pass --attest if they are true:\n    - " + strings.Join(human, "\n    - ")})
 	} else if opt.Attest {
 		o.Applied = append(o.Applied, "Ticked the checklist items you attested to")
 	}

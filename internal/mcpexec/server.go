@@ -105,6 +105,8 @@ func (s *Server) tools() []tool {
 			})},
 		{"list_dir", "List a directory on your development machine (like ls -la). Relative paths are inside the project directory.",
 			obj([]string{}, map[string]any{"path": str("Directory (default: the project directory).")})},
+		{"report_progress", `Post a one-line status update that the person watching this run sees live, e.g. "Step 2 fails: pip can't import the protobuf-generated modules; checking which protobuf version works". Call it when you start a new step, when something fails, and when you change approach: roughly every few commands, never in place of doing the work. Plain language, under 200 characters, no secrets.`,
+			obj([]string{"message"}, map[string]any{"message": str("The update, one sentence.")})},
 	}
 	if s.Creds != nil {
 		ts = append(ts, tool{"request_credential", `Ask the user for a credential (API key, token, password) that you need to keep following the quickstart, instead of using a placeholder. Name it with the environment variable the docs or the error message use (e.g. GEMINI_API_KEY). If the user provides it, it is set in the environment of every command you run from then on; you never see the value, and it appears as [REDACTED:NAME] in output. If it isn't provided, continue without it and report the steps that need it as failed.`,
@@ -282,6 +284,22 @@ func (s *Server) call(ctx context.Context, name string, raw json.RawMessage) (ma
 			return toolText("error: "+err.Error(), true), true
 		}
 		return toolText(creds.Redact(out, s.secretsSnapshot()), false), true
+	case "report_progress":
+		var a struct {
+			Message string `json:"message"`
+		}
+		if err := json.Unmarshal(raw, &a); err != nil {
+			return bad(err), true
+		}
+		msg := strings.Join(strings.Fields(a.Message), " ")
+		if msg == "" {
+			return toolText("error: message is required", true), true
+		}
+		if len(msg) > 500 {
+			msg = strings.ToValidUTF8(msg[:500], "")
+		}
+		s.log(devbox.ExecRecord{Time: time.Now().UTC(), Kind: "progress", Command: creds.Redact(msg, s.secretsSnapshot())})
+		return toolText("Posted.", false), true
 	case "request_credential":
 		if s.Creds == nil {
 			return nil, false

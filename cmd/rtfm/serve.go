@@ -104,6 +104,7 @@ type workerFlags struct {
 	memory, cpus  string
 	docker        string
 	envFile       string
+	autoPR        bool
 }
 
 func (wf *workerFlags) register(fs *flag.FlagSet, defaultWorkers int) {
@@ -116,6 +117,7 @@ func (wf *workerFlags) register(fs *flag.FlagSet, defaultWorkers int) {
 	fs.StringVar(&wf.memory, "memory", "4g", "devbox memory")
 	fs.StringVar(&wf.cpus, "cpus", "2", "devbox CPUs")
 	fs.StringVar(&wf.docker, "docker", "docker", "docker binary")
+	fs.BoolVar(&wf.autoPR, "auto-pr", false, "open verified fixes as pull requests automatically, without sign-off or attestations (demo mode; partial fixes and AI-banning projects are skipped)")
 	fs.StringVar(&wf.envFile, "env-file", env("RTFM_ENV_FILE"), "read configuration from this KEY=VALUE file (the environment wins)")
 }
 
@@ -127,6 +129,7 @@ func (wf *workerFlags) config(d *db.DB, e *serviceEnv, box *secretbox.Box, log *
 		Concurrency: wf.workers,
 		WorkRoot:    wf.work, OutDir: wf.out,
 		DefaultModel: wf.model, Timeout: wf.timeout,
+		AutoOpenPRs: wf.autoPR,
 		NewBackend: func(ctx context.Context, name string) (devbox.Backend, error) {
 			af := agentFlags{backend: name, docker: wf.docker, memory: wf.memory, cpus: wf.cpus}
 			b, err := af.newBackend(ctx)
@@ -284,4 +287,37 @@ func orDefault(s, d string) string {
 		return d
 	}
 	return s
+}
+
+// cmdPRDraft (re)prepares a finished run's pull request draft, on the
+// worker host that has the run's artifacts.
+func cmdPRDraft(ctx context.Context, args []string) error {
+	fs := flag.NewFlagSet("pr-draft", flag.ContinueOnError)
+	var wf workerFlags
+	wf.register(fs, 1)
+	pos, err := parseInterspersed(fs, args)
+	if err != nil {
+		return err
+	}
+	if len(pos) != 1 {
+		return errors.New("usage: rtfm pr-draft <run-id> [--env-file FILE] [--out DIR]")
+	}
+	runID, err := strconv.ParseInt(pos[0], 10, 64)
+	if err != nil || runID <= 0 {
+		return fmt.Errorf("invalid run id %q", pos[0])
+	}
+	if err := loadEnvFile(wf.envFile); err != nil {
+		return err
+	}
+	log := slog.New(slog.NewTextHandler(os.Stderr, nil))
+	e, d, box, err := openService(ctx, false)
+	if err != nil {
+		return err
+	}
+	defer d.Close()
+	if err := worker.DraftRun(ctx, wf.config(d, e, box, log), runID); err != nil {
+		return err
+	}
+	fmt.Fprintf(os.Stderr, "pull request draft ready for run %d\n", runID)
+	return nil
 }

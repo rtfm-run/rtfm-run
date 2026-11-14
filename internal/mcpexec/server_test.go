@@ -115,7 +115,7 @@ func TestServeProtocolAndExec(t *testing.T) {
 	for _, tl := range r[1]["result"].(map[string]any)["tools"].([]any) {
 		names = append(names, tl.(map[string]any)["name"].(string))
 	}
-	if strings.Join(names, ",") != "exec,read_file,write_file,edit_file,list_dir" {
+	if strings.Join(names, ",") != "exec,read_file,write_file,edit_file,list_dir,report_progress" {
 		t.Errorf("tools = %v", names)
 	}
 	if isErr(r[2]) || !strings.Contains(textOf(r[2]), "exited with code 0") {
@@ -147,6 +147,8 @@ func TestFileTools(t *testing.T) {
 		call(6, "write_file", `{"path":"notes/a.txt","content":"hi"}`),
 		call(7, "list_dir", `{}`),
 		call(8, "read_file", `{"path":"missing.md"}`),
+		call(9, "report_progress", `{"message":"  Step 2 fails:\n pip can't import protobuf  "}`),
+		call(10, "report_progress", `{"message":"   "}`),
 	)
 	if !strings.HasPrefix(textOf(r[0]), "# Demo") {
 		t.Errorf("read = %q", textOf(r[0]))
@@ -171,6 +173,12 @@ func TestFileTools(t *testing.T) {
 	}
 	if !isErr(r[7]) {
 		t.Errorf("missing read should error")
+	}
+	if isErr(r[8]) || !isErr(r[9]) {
+		t.Errorf("report_progress = %v / empty = %v", r[8], r[9])
+	}
+	if !strings.Contains(logBuf.String(), `"kind":"progress","command":"Step 2 fails: pip can't import protobuf"`) {
+		t.Errorf("progress not logged: %s", logBuf.String())
 	}
 	if !strings.Contains(logBuf.String(), `"kind":"edit_file","command":"/work/project/README.md"`) ||
 		!strings.Contains(logBuf.String(), `"kind":"write_file","command":"/work/project/notes/a.txt"`) {

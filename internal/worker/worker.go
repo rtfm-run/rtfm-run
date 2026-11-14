@@ -18,6 +18,7 @@ import (
 	"rtfm.run/internal/devbox"
 	"rtfm.run/internal/ghapp"
 	"rtfm.run/internal/pipeline"
+	"rtfm.run/internal/prs"
 	"rtfm.run/internal/report"
 	"rtfm.run/internal/runner"
 	"rtfm.run/internal/secretbox"
@@ -40,6 +41,13 @@ type Config struct {
 	OutDir       string // run artifacts: <OutDir>/run-<id>/...
 	DefaultModel string
 	Timeout      time.Duration // per agent stage
+
+	// AutoOpenPRs opens verified fixes as pull requests as soon as they are
+	// drafted, without waiting for anyone. It never answers a repository's
+	// personal requirements (DCO sign-off, CLA, template attestations): the
+	// PR goes up without them. Partial fixes, and projects that refuse AI
+	// contributions, are never opened automatically.
+	AutoOpenPRs bool
 
 	// NewBackend returns a ready devbox backend by name (auto, docker,
 	// firecracker).
@@ -242,11 +250,34 @@ func Process(parent context.Context, cfg Config, j db.Job, log *slog.Logger) {
 		out.VerifyReport = vrep
 		out.Steps = append(out.Steps, steps.FromRun(vrep, "verify")...)
 	}
+	// A cancel that lands after the first stage stops the fixer, but the
+	// pipeline still returns what it found: keep that, recorded as canceled.
+	select {
+	case <-canceled:
+		out.Canceled = true
+	default:
+	}
+	if !out.Canceled && prs.Eligible(rep, true) == nil {
+		pc.OnEvent("stage_started", map[string]any{"stage": "pr"})
+		ok, why := cfg.draftPR(ctx, run.ID, repo.InstallationID, rep, vrep, filepath.Join(outDir, t.Slug()), model)
+		if why != "" {
+			log.Warn("pull request draft skipped", "reason", why)
+		}
+		pc.OnEvent("stage_finished", map[string]any{"stage": "pr", "ready": ok, "error": why})
+		if ok && cfg.AutoOpenPRs {
+			if url, why := cfg.autoOpenPR(ctx, run.ID, repo.InstallationID); url != "" {
+				log.Info("pull request opened automatically", "url", url)
+			} else if why != "" {
+				log.Info("pull request left as a draft", "reason", why)
+				pc.OnEvent("progress", map[string]any{"stage": "pr", "message": "Left the pull request as a draft: " + why})
+			}
+		}
+	}
 	if err := cfg.DB.Finish(record, run.ID, out); err != nil {
 		log.Error("recording the run failed", "err", err)
 		return
 	}
-	log.Info("run finished", "verdict", out.Verdict, "issues", out.Issues, "fix", out.FixStatus, "commit", out.CommitSHA)
+	log.Info("run finished", "canceled", out.Canceled, "verdict", out.Verdict, "issues", out.Issues, "fix", out.FixStatus, "commit", out.CommitSHA)
 }
 
 func loadRun(path string) *report.Run {

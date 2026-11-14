@@ -31,6 +31,10 @@ type Proposal struct {
 	BaseBranch string
 	// Author, if set, authors the commit (needed for DCO sign-off).
 	Author *github.Identity
+	// Direct pushes the branch to the repository itself instead of checking
+	// push access and forking: for callers known to have write access, such
+	// as a GitHub App installation (whose tokens don't report permissions).
+	Direct bool `json:"-"`
 }
 
 // ErrNotEligible means the run has no fix that should become a PR.
@@ -228,7 +232,7 @@ func Open(ctx context.Context, gh *github.Client, p *Proposal) (*Opened, error) 
 
 	target, head := up, p.Branch
 	opened := &Opened{Branch: p.Branch}
-	if !info.Permissions.Push {
+	if !info.Permissions.Push && !p.Direct {
 		fork, err := gh.Fork(ctx, up)
 		if err != nil {
 			return nil, fmt.Errorf("fork %s: %w", up, err)

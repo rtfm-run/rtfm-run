@@ -59,9 +59,13 @@ func testDB(t *testing.T) *db.DB {
 	return d
 }
 
-// fakeGitHub serves the OAuth, user and installation endpoints.
-func fakeGitHub(t *testing.T) *httptest.Server {
+// fakeGitHub serves the OAuth, user and installation endpoints. extra, if
+// set, gets the first chance at each request (returning true if it handled it).
+func fakeGitHub(t *testing.T, extra func(http.ResponseWriter, *http.Request) bool) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if extra != nil && extra(w, r) {
+			return
+		}
 		auth := r.Header.Get("Authorization")
 		switch {
 		case r.URL.Path == "/login/oauth/access_token":
@@ -90,9 +94,11 @@ type env struct {
 	app    *ghapp.App
 }
 
-func newEnv(t *testing.T) *env {
+func newEnv(t *testing.T) *env { return newEnvWith(t, nil) }
+
+func newEnvWith(t *testing.T, extra func(http.ResponseWriter, *http.Request) bool) *env {
 	d := testDB(t)
-	gh := fakeGitHub(t)
+	gh := fakeGitHub(t, extra)
 	t.Cleanup(gh.Close)
 	key, _ := rsa.GenerateKey(rand.Reader, 2048)
 	app := &ghapp.App{ID: 1, Slug: "rtfm-test", ClientID: "Iv1", ClientSecret: "s", WebhookSecret: "whsec", Key: key, APIBase: gh.URL, WebBase: gh.URL}
@@ -207,8 +213,8 @@ func TestEndToEnd(t *testing.T) {
 	if code, out := e.do("POST", "/api/repos/500/quickstarts", "application/json", map[string]any{"doc_path": "../etc/passwd", "goal": "x"}); code != 422 {
 		t.Errorf("bad doc path = %d %v", code, out)
 	}
-	if code, out := e.do("POST", "/api/repos/500/quickstarts", "application/json", map[string]any{"doc_path": "README.md"}); code != 422 || !strings.Contains(out["error"].(string), "goal") {
-		t.Errorf("missing goal = %d %v", code, out)
+	if code, out := e.do("POST", "/api/repos/500/quickstarts", "application/json", map[string]any{"doc_path": "docs/other.md"}); code != 201 || out["goal"] != DefaultGoal {
+		t.Errorf("missing goal should get the default = %d %v", code, out)
 	}
 	code, qs := e.do("POST", "/api/repos/500/quickstarts", "application/json", map[string]any{"doc_path": "README.md", "goal": "start the server", "success_check": "curl -fsS localhost:8000"})
 	if code != 201 || qs["backend"] != "auto" || qs["fix"] != true {

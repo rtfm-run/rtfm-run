@@ -256,7 +256,13 @@ func newhire(ctx context.Context, cfg Config, t targets.Target, outDir string, d
 		}
 	}
 
+	stage := "newhire"
+	if !primary {
+		stage = "verify"
+	}
+	stopWatch := cfg.watchActivity(ctx, stage, e.req.ExecLog)
 	sum, runErr := cfg.Runner.Run(ctx, e.req)
+	stopWatch()
 	e.finish(sec)
 	merge(run, sum)
 	if e.box != nil {
@@ -344,7 +350,9 @@ func fixAndVerify(ctx context.Context, cfg Config, t targets.Target, run *report
 		closeEnv()
 		return fail(err)
 	}
+	stopWatch := cfg.watchActivity(ctx, "fix", e.req.ExecLog)
 	sum, fixErr := cfg.Runner.RunPrompt(ctx, e.req, prompt, persona.FixerSchema())
+	stopWatch()
 	e.finish(sec)
 	finalB, readErr := e.readDoc(ctx, t.DocPath) // only the doc is taken; other edits are ignored
 	closeEnv()

@@ -40,7 +40,9 @@ func (s *Server) Handler() http.Handler {
 		s.SessionTTL = 30 * 24 * time.Hour
 	}
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, map[string]string{"status": "ok"}) })
+	health := func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, map[string]string{"status": "ok"}) }
+	mux.HandleFunc("GET /healthz", health)
+	mux.HandleFunc("GET /health", health) // Cloud Run reserves paths ending in "z"
 
 	// The API has no pages of its own: send people who land on it (e.g. from
 	// the App's homepage link) to the dashboard.
@@ -70,6 +72,7 @@ func (s *Server) Handler() http.Handler {
 	api("PATCH /api/quickstarts/{id}", s.updateQuickstart)
 	api("DELETE /api/quickstarts/{id}", s.deleteQuickstart)
 	api("GET /api/quickstarts/{id}/steps", s.stepHealth)
+	api("GET /api/quickstarts/{id}/pull-requests", s.listPRs)
 	api("GET /api/quickstarts/{id}/triggers", s.listTriggers)
 	api("POST /api/quickstarts/{id}/triggers", s.createTrigger)
 	api("PATCH /api/triggers/{id}", s.updateTrigger)
@@ -81,6 +84,8 @@ func (s *Server) Handler() http.Handler {
 	api("GET /api/runs", s.listRuns)
 	api("GET /api/runs/{id}", s.getRun)
 	api("POST /api/runs/{id}/cancel", s.cancelRun)
+	api("GET /api/runs/{id}/pr", s.getPR)
+	api("POST /api/runs/{id}/pr", s.openPR)
 	api("GET /api/runs/{id}/events", s.runEvents)
 
 	return s.cors(s.logRequests(mux))

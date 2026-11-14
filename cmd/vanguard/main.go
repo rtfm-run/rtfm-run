@@ -58,7 +58,9 @@ func main() {
 	case "worker":
 		err = cmdWorker(ctx, os.Args[2:])
 	case "migrate":
-		err = cmdMigrate(ctx)
+		err = cmdMigrate(ctx, os.Args[2:])
+	case "github-app":
+		err = cmdGitHubApp(ctx, os.Args[2:])
 	case "pr":
 		err = cmdPR(ctx, os.Args[2:])
 	case "creds":
@@ -94,6 +96,7 @@ Usage:
   vanguard serve [--workers N]          run the API (+ workers) for the dashboard
   vanguard worker [--workers N]         run workers only (KVM hosts)
   vanguard migrate                      apply database migrations
+  vanguard github-app create            register the GitHub App (one click on GitHub)
   vanguard version
 
 Run 'vanguard run -h' or 'vanguard sweep -h' for flags.

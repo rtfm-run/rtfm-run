@@ -103,6 +103,7 @@ type workerFlags struct {
 	timeout       time.Duration
 	memory, cpus  string
 	docker        string
+	envFile       string
 }
 
 func (wf *workerFlags) register(fs *flag.FlagSet, defaultWorkers int) {
@@ -115,6 +116,7 @@ func (wf *workerFlags) register(fs *flag.FlagSet, defaultWorkers int) {
 	fs.StringVar(&wf.memory, "memory", "4g", "devbox memory")
 	fs.StringVar(&wf.cpus, "cpus", "2", "devbox CPUs")
 	fs.StringVar(&wf.docker, "docker", "docker", "docker binary")
+	fs.StringVar(&wf.envFile, "env-file", env("VANGUARD_ENV_FILE"), "read configuration from this KEY=VALUE file (the environment wins)")
 }
 
 func (wf *workerFlags) config(d *db.DB, e *serviceEnv, box *secretbox.Box, log *slog.Logger) worker.Config {
@@ -168,6 +170,9 @@ func cmdServe(ctx context.Context, args []string) error {
 	if _, err := parseInterspersed(fs, args); err != nil {
 		return err
 	}
+	if err := loadEnvFile(wf.envFile); err != nil {
+		return err
+	}
 	log := slog.New(slog.NewJSONHandler(os.Stderr, nil))
 	e, d, box, err := openService(ctx, true)
 	if err != nil {
@@ -214,6 +219,9 @@ func cmdWorker(ctx context.Context, args []string) error {
 	if _, err := parseInterspersed(fs, args); err != nil {
 		return err
 	}
+	if err := loadEnvFile(wf.envFile); err != nil {
+		return err
+	}
 	if wf.workers < 1 {
 		return errors.New("worker: --workers must be at least 1")
 	}
@@ -231,7 +239,15 @@ func cmdWorker(ctx context.Context, args []string) error {
 	return err
 }
 
-func cmdMigrate(ctx context.Context) error {
+func cmdMigrate(ctx context.Context, args []string) error {
+	fs := flag.NewFlagSet("migrate", flag.ContinueOnError)
+	envFile := fs.String("env-file", env("VANGUARD_ENV_FILE"), "read configuration from this KEY=VALUE file")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if err := loadEnvFile(*envFile); err != nil {
+		return err
+	}
 	url := env("VANGUARD_DATABASE_URL")
 	if url == "" {
 		return errors.New("set VANGUARD_DATABASE_URL")

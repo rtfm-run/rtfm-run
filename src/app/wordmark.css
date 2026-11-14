@@ -1,0 +1,14 @@
+.wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+  font-weight: 700;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.wordmark-logo {
+  width: 2em;
+  height: 2em;
+  flex: none;
+}

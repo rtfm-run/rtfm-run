@@ -1,5 +1,7 @@
+import Link from "next/link";
 import CopyButton from "./copy-button";
 import RunReplay from "./run-replay";
+import Wordmark from "./wordmark";
 
 const GITHUB = "https://github.com/vanguard-run";
 const BADGE_MD =
@@ -39,10 +41,13 @@ export default function Home() {
   return (
     <main className="memo">
       <header className="rfc-head">
-        <div>vanguard.run</div>
+        <div>
+          <Wordmark />
+        </div>
         <div className="r">
+          <Link href="/dashboard">dashboard</Link> · <Link href="/login">sign in</Link> ·{" "}
           <a className="hl" href={GITHUB}>
-            github.com/vanguard-run
+            github
           </a>
         </div>
       </header>
